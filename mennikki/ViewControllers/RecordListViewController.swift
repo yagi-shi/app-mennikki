@@ -125,7 +125,7 @@ class RecordListViewController: UIViewController {
 
     private func setupNavigationBar() {
         title = "記録"
-        navigationItem.largeTitleDisplayMode = .always
+        navigationItem.largeTitleDisplayMode = .never
 
         // UISearchControllerの設定
         searchController = UISearchController(searchResultsController: nil)
