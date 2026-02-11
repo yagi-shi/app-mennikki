@@ -64,7 +64,7 @@ class StarRatingView: UIView {
         let button = UIButton(type: .custom)
         let config = UIImage.SymbolConfiguration(pointSize: 32, weight: .regular)
         button.setImage(UIImage(systemName: "star", withConfiguration: config), for: .normal)
-        button.tintColor = .appSecondaryText.withAlphaComponent(0.3)
+        button.tintColor = .appBorder
         button.tag = index + 1
         button.addTarget(self, action: #selector(starTapped(_:)), for: .touchUpInside)
         return button
@@ -93,7 +93,7 @@ class StarRatingView: UIView {
             let config = UIImage.SymbolConfiguration(pointSize: 32, weight: .regular)
             let imageName = isFilled ? "star.fill" : "star"
             button.setImage(UIImage(systemName: imageName, withConfiguration: config), for: .normal)
-            button.tintColor = isFilled ? .appSecondary : .appSecondaryText.withAlphaComponent(0.3)
+            button.tintColor = isFilled ? .appSuccess : .appBorder
         }
     }
 

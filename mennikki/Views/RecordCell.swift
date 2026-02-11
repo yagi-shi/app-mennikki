@@ -2,77 +2,97 @@
 //  RecordCell.swift
 //  mennikki
 //
-//  Created by Claude on 2026/02/07.
-//
 
 import UIKit
 
-/// 記録セル（2列グリッドで使用）
+/// Duolingo風ラーメン記録カード
+/// - 上半分: ラーメン種類カラーの背景（写真がある場合は写真）
+/// - 下半分: 白背景、店名・種類タグ・評価・日付
+/// - Duolingo の「押し込み」3Dシャドウ効果
 class RecordCell: UICollectionViewCell {
-
-    // MARK: - Properties
 
     static let reuseIdentifier = "RecordCell"
 
-    // MARK: - UI Components
+    // MARK: - UI: 上エリア（カラー or 写真）
+
+    private let topArea: UIView = {
+        let v = UIView()
+        v.clipsToBounds = true
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
 
     private let photoImageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
-        imageView.backgroundColor = .appSecondaryText.withAlphaComponent(0.1)
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-
-        // プレースホルダーアイコン
-        let config = UIImage.SymbolConfiguration(pointSize: 40, weight: .regular)
-        imageView.image = UIImage(systemName: "fork.knife", withConfiguration: config)
-        imageView.tintColor = .appSecondaryText
-
-        return imageView
+        let iv = UIImageView()
+        iv.contentMode = .scaleAspectFill
+        iv.clipsToBounds = true
+        iv.isHidden = true
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
     }()
 
-    private let favoriteButton: UIButton = {
-        let button = UIButton(type: .custom)
-        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
-        button.setImage(UIImage(systemName: "heart.fill", withConfiguration: config), for: .normal)
-        button.tintColor = .appPrimary
-        button.backgroundColor = .white.withAlphaComponent(0.9)
-        button.layer.cornerRadius = 16
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.isHidden = true // デフォルトは非表示
-        return button
+    private let placeholderIcon: UIImageView = {
+        let iv = UIImageView()
+        let cfg = UIImage.SymbolConfiguration(pointSize: 30, weight: .thin)
+        iv.image = UIImage(systemName: "fork.knife", withConfiguration: cfg)
+        iv.tintColor = UIColor.white.withAlphaComponent(0.75)
+        iv.contentMode = .scaleAspectFit
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
     }()
+
+    private let favoriteIcon: UIImageView = {
+        let iv = UIImageView()
+        let cfg = UIImage.SymbolConfiguration(pointSize: 10, weight: .bold)
+        iv.image = UIImage(systemName: "heart.fill", withConfiguration: cfg)
+        iv.tintColor = .white
+        iv.backgroundColor = UIColor(red: 255/255, green: 75/255, blue: 75/255, alpha: 1)
+        iv.layer.cornerRadius = 12
+        iv.contentMode = .center
+        iv.isHidden = true
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    // MARK: - UI: 下エリア（テキスト情報）
 
     private let storeNameLabel: UILabel = {
-        let label = UILabel()
-        label.font = .appStoreName
-        label.textColor = .appText
-        label.numberOfLines = 2
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
+        let l = UILabel()
+        l.font = .appStoreName
+        l.textColor = .appText
+        l.numberOfLines = 2
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
     }()
 
-    private let ramenTypeTagLabel: UILabel = {
-        let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 13, weight: .medium)
-        label.textColor = .appText
-        label.backgroundColor = .appTagBackground
-        label.textAlignment = .center
-        label.layer.cornerRadius = 8
-        label.clipsToBounds = true
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
+    private let typeTagLabel: UILabel = {
+        let l = UILabel()
+        l.font = .appTag
+        l.textColor = .white
+        l.textAlignment = .center
+        l.layer.cornerRadius = 8
+        l.clipsToBounds = true
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
     }()
 
-    private let visitDateLabel: UILabel = {
-        let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 12, weight: .regular)
-        label.textColor = .appSecondaryText
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
+    private let starsStack: UIStackView = {
+        let sv = UIStackView()
+        sv.axis = .horizontal
+        sv.spacing = 1
+        sv.translatesAutoresizingMaskIntoConstraints = false
+        return sv
     }()
 
-    // MARK: - Initialization
+    private let dateLabel: UILabel = {
+        let l = UILabel()
+        l.font = .appCaption
+        l.textColor = .appSecondaryText
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
+    // MARK: - Init
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -80,109 +100,163 @@ class RecordCell: UICollectionViewCell {
         setupConstraints()
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    required init?(coder: NSCoder) { fatalError() }
 
     // MARK: - Setup
 
     private func setupUI() {
-        // セルの背景とシャドウ
-        contentView.backgroundColor = .appCardBackground
-        contentView.layer.cornerRadius = 12
+        // contentView: 角丸クリップ
+        contentView.backgroundColor = .white
+        contentView.layer.cornerRadius = 16
         contentView.layer.masksToBounds = true
 
-        // シャドウ（contentViewの外側）
-        layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.1
-        layer.shadowRadius = 8
-        layer.shadowOffset = CGSize(width: 0, height: 2)
+        // セル本体: Duolingo の「押し込み」ハードシャドウ
+        layer.cornerRadius = 16
         layer.masksToBounds = false
+        layer.shadowColor = UIColor.appBorder.cgColor
+        layer.shadowOpacity = 1.0
+        layer.shadowRadius = 0          // ぼかしなし = ハードシャドウ
+        layer.shadowOffset = CGSize(width: 0, height: 5)
+        // カードのハードボーダー（Duolingo風の立体感）
+        contentView.layer.borderWidth = 2
+        contentView.layer.borderColor = UIColor(red: 235/255, green: 235/255, blue: 235/255, alpha: 1).cgColor
 
-        // サブビューを追加
-        contentView.addSubview(photoImageView)
-        contentView.addSubview(favoriteButton)
+        // 5個の星アイコンを追加
+        for _ in 0..<5 {
+            let iv = UIImageView()
+            iv.widthAnchor.constraint(equalToConstant: 10).isActive = true
+            iv.heightAnchor.constraint(equalToConstant: 10).isActive = true
+            starsStack.addArrangedSubview(iv)
+        }
+
+        contentView.addSubview(topArea)
+        topArea.addSubview(photoImageView)
+        topArea.addSubview(placeholderIcon)
+        contentView.addSubview(favoriteIcon)
         contentView.addSubview(storeNameLabel)
-        contentView.addSubview(ramenTypeTagLabel)
-        contentView.addSubview(visitDateLabel)
+        contentView.addSubview(typeTagLabel)
+        contentView.addSubview(starsStack)
+        contentView.addSubview(dateLabel)
     }
 
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Photo ImageView（上部）
-            photoImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            photoImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            photoImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            photoImageView.heightAnchor.constraint(equalToConstant: 120),
+            // 上エリア: セル高さの 48%
+            topArea.topAnchor.constraint(equalTo: contentView.topAnchor),
+            topArea.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            topArea.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            topArea.heightAnchor.constraint(equalTo: contentView.heightAnchor, multiplier: 0.48),
 
-            // Favorite Button（右上に重なる）
-            favoriteButton.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
-            favoriteButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
-            favoriteButton.widthAnchor.constraint(equalToConstant: 32),
-            favoriteButton.heightAnchor.constraint(equalToConstant: 32),
+            // 写真
+            photoImageView.topAnchor.constraint(equalTo: topArea.topAnchor),
+            photoImageView.leadingAnchor.constraint(equalTo: topArea.leadingAnchor),
+            photoImageView.trailingAnchor.constraint(equalTo: topArea.trailingAnchor),
+            photoImageView.bottomAnchor.constraint(equalTo: topArea.bottomAnchor),
 
-            // Store Name Label
-            storeNameLabel.topAnchor.constraint(equalTo: photoImageView.bottomAnchor, constant: 8),
-            storeNameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
-            storeNameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+            // プレースホルダーアイコン
+            placeholderIcon.centerXAnchor.constraint(equalTo: topArea.centerXAnchor),
+            placeholderIcon.centerYAnchor.constraint(equalTo: topArea.centerYAnchor),
+            placeholderIcon.widthAnchor.constraint(equalToConstant: 36),
+            placeholderIcon.heightAnchor.constraint(equalToConstant: 36),
 
-            // Ramen Type Tag Label
-            ramenTypeTagLabel.topAnchor.constraint(equalTo: storeNameLabel.bottomAnchor, constant: 6),
-            ramenTypeTagLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
-            ramenTypeTagLabel.heightAnchor.constraint(equalToConstant: 24),
+            // お気に入りバッジ
+            favoriteIcon.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+            favoriteIcon.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
+            favoriteIcon.widthAnchor.constraint(equalToConstant: 24),
+            favoriteIcon.heightAnchor.constraint(equalToConstant: 24),
 
-            // Visit Date Label
-            visitDateLabel.topAnchor.constraint(equalTo: ramenTypeTagLabel.bottomAnchor, constant: 6),
-            visitDateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 8),
-            visitDateLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -8),
-            visitDateLabel.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -8)
+            // 店名
+            storeNameLabel.topAnchor.constraint(equalTo: topArea.bottomAnchor, constant: 10),
+            storeNameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            storeNameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+
+            // 種類タグ
+            typeTagLabel.topAnchor.constraint(equalTo: storeNameLabel.bottomAnchor, constant: 6),
+            typeTagLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            typeTagLabel.heightAnchor.constraint(equalToConstant: 18),
+
+            // 星評価
+            starsStack.centerYAnchor.constraint(equalTo: typeTagLabel.centerYAnchor),
+            starsStack.leadingAnchor.constraint(equalTo: typeTagLabel.trailingAnchor, constant: 5),
+
+            // 日付
+            dateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            dateLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
         ])
     }
 
-    // MARK: - Configuration
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        // シャドウパスを更新してパフォーマンス向上
+        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 16).cgPath
+    }
 
-    /// セルにデータを設定
+    // MARK: - Configure
+
     func configure(with record: Record) {
-        // 店舗名
         storeNameLabel.text = record.storeName
 
-        // ラーメンの種類
-        if let ramenType = RamenType(rawValue: record.ramenType ?? "") {
-            ramenTypeTagLabel.text = ramenType.rawValue
-        } else {
-            ramenTypeTagLabel.text = "不明"
+        let ramenType = RamenType(rawValue: record.ramenType ?? "") ?? .other
+        let typeColor = UIColor.colorForRamenType(ramenType)
+
+        // 種類タグ
+        typeTagLabel.text = " \(ramenType.rawValue) "
+        typeTagLabel.backgroundColor = typeColor
+
+        // 日付
+        if let date = record.visitDate {
+            let fmt = DateFormatter()
+            fmt.dateFormat = "M/d"
+            dateLabel.text = fmt.string(from: date)
         }
 
-        // 訪問日
-        if let visitDate = record.visitDate {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy/MM/dd"
-            visitDateLabel.text = formatter.string(from: visitDate)
-        } else {
-            visitDateLabel.text = ""
+        // 星評価
+        let stars = starsStack.arrangedSubviews.compactMap { $0 as? UIImageView }
+        for (i, star) in stars.enumerated() {
+            let cfg = UIImage.SymbolConfiguration(pointSize: 9, weight: .bold)
+            let filled = i < Int(record.rating)
+            star.image = UIImage(systemName: filled ? "star.fill" : "star", withConfiguration: cfg)
+            star.tintColor = filled
+                ? UIColor(red: 88/255, green: 204/255, blue: 2/255, alpha: 1)   // Duolingo green
+                : UIColor(red: 220/255, green: 220/255, blue: 220/255, alpha: 1)
         }
+        starsStack.isHidden = record.rating == 0
 
-        // お気に入りバッジ
-        favoriteButton.isHidden = !record.isFavorite
+        // お気に入り
+        favoriteIcon.isHidden = !record.isFavorite
 
-        // 写真
-        if let photoData = record.photo, let image = UIImage(data: photoData) {
+        // 写真 or カラープレースホルダー
+        if let data = record.photo, let image = UIImage(data: data) {
             photoImageView.image = image
-            photoImageView.contentMode = .scaleAspectFill
+            photoImageView.isHidden = false
+            placeholderIcon.isHidden = true
+            topArea.backgroundColor = .black   // 背景を黒にして写真のコントラスト確保
         } else {
-            // プレースホルダー
-            let config = UIImage.SymbolConfiguration(pointSize: 40, weight: .regular)
-            photoImageView.image = UIImage(systemName: "fork.knife", withConfiguration: config)
-            photoImageView.contentMode = .center
+            photoImageView.isHidden = true
+            placeholderIcon.isHidden = false
+            topArea.backgroundColor = typeColor
         }
 
         // アクセシビリティ
         isAccessibilityElement = true
-        accessibilityTraits = .button
+        accessibilityLabel = "\(record.storeName ?? "")、\(ramenType.rawValue)"
+        accessibilityHint = "ダブルタップして詳細を表示"
+    }
 
-        let favoriteText = record.isFavorite ? "お気に入り" : ""
-        accessibilityLabel = "\(record.storeName ?? "")、\(ramenTypeTagLabel.text ?? "")、\(visitDateLabel.text ?? "")、\(favoriteText)"
-        accessibilityHint = "ダブルタップして記録の詳細を表示"
+    // MARK: - Duolingo 押し込みアニメーション
+
+    override var isHighlighted: Bool {
+        didSet {
+            UIView.animate(withDuration: 0.08, delay: 0, options: [.allowUserInteraction, .beginFromCurrentState]) {
+                // Duolingo: 押すとカードが 5px 下にずれ、シャドウが消える
+                self.transform = self.isHighlighted
+                    ? CGAffineTransform(translationX: 0, y: 5)
+                    : .identity
+                self.layer.shadowOffset = self.isHighlighted
+                    ? .zero
+                    : CGSize(width: 0, height: 5)
+            }
+        }
     }
 
     // MARK: - Reuse
@@ -190,9 +264,14 @@ class RecordCell: UICollectionViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         storeNameLabel.text = nil
-        ramenTypeTagLabel.text = nil
-        visitDateLabel.text = nil
+        typeTagLabel.text = nil
+        dateLabel.text = nil
         photoImageView.image = nil
-        favoriteButton.isHidden = true
+        photoImageView.isHidden = true
+        placeholderIcon.isHidden = false
+        favoriteIcon.isHidden = true
+        starsStack.isHidden = false
+        transform = .identity
+        layer.shadowOffset = CGSize(width: 0, height: 5)
     }
 }

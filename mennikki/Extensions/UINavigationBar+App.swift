@@ -2,34 +2,39 @@
 //  UINavigationBar+App.swift
 //  mennikki
 //
-//  Created by Claude on 2026/02/07.
-//
 
 import UIKit
 
 extension UINavigationBar {
     /// Duolingo風のスタイルを適用
     func applyAppStyle() {
-        // 背景色を白に設定
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = .white
 
-        // タイトルのフォントとカラー
+        // タイトル: Rounded Bold
         appearance.titleTextAttributes = [
             .font: UIFont.appNavigationTitle,
             .foregroundColor: UIColor.appText
         ]
 
-        // シャドウの設定
-        appearance.shadowColor = UIColor.black.withAlphaComponent(0.05)
+        // 大タイトル: Rounded Heavy
+        appearance.largeTitleTextAttributes = [
+            .font: UIFont.appLargeTitle,
+            .foregroundColor: UIColor.appText
+        ]
 
-        // 各状態に適用
+        // Duolingo風: 下にうっすらボーダー（ハードシャドウ）
+        appearance.shadowColor = .appBorder
+
         standardAppearance = appearance
         scrollEdgeAppearance = appearance
         compactAppearance = appearance
 
-        // tintColor（ボタンの色）
+        // 大タイトル表示
+        prefersLargeTitles = true
+
+        // ボタンの色
         tintColor = .appPrimary
     }
 }

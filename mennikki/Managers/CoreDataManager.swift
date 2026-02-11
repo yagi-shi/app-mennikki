@@ -60,7 +60,8 @@ class CoreDataManager {
         rating: Int16 = 0,
         comment: String? = nil,
         photo: Data? = nil,
-        isFavorite: Bool = false
+        isFavorite: Bool = false,
+        prefecture: Prefecture? = nil
     ) -> Record? {
         let context = viewContext
 
@@ -74,6 +75,7 @@ class CoreDataManager {
         record.comment = comment
         record.photo = photo
         record.isFavorite = isFavorite
+        record.prefecture = prefecture?.rawValue
         record.createdAt = Date()
 
         do {
@@ -107,7 +109,8 @@ class CoreDataManager {
         rating: Int16,
         comment: String?,
         photo: Data?,
-        isFavorite: Bool
+        isFavorite: Bool,
+        prefecture: Prefecture? = nil
     ) -> Bool {
         record.storeName = storeName
         record.ramenType = ramenType.rawValue
@@ -117,6 +120,7 @@ class CoreDataManager {
         record.comment = comment
         record.photo = photo
         record.isFavorite = isFavorite
+        record.prefecture = prefecture?.rawValue
 
         return saveContext()
     }

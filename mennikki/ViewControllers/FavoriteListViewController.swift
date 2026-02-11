@@ -14,6 +14,7 @@ class FavoriteListViewController: UIViewController {
     // MARK: - Properties
 
     private var fetchedResultsController: NSFetchedResultsController<Record>!
+    private var animatedCells = Set<IndexPath>()
 
     // MARK: - UI Components
 
@@ -92,6 +93,7 @@ class FavoriteListViewController: UIViewController {
         super.viewWillAppear(animated)
 
         // お気に入りの変更を反映するため、表示時にデータを再取得
+        animatedCells.removeAll()
         try? fetchedResultsController.performFetch()
         collectionView.reloadData()
         updateEmptyState()
@@ -107,6 +109,7 @@ class FavoriteListViewController: UIViewController {
 
     private func setupNavigationBar() {
         title = "お気に入り"
+        navigationItem.largeTitleDisplayMode = .always
     }
 
     private func setupConstraints() {
@@ -185,19 +188,14 @@ extension FavoriteListViewController: UICollectionViewDataSource {
 
 extension FavoriteListViewController: UICollectionViewDelegate {
 
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        // セルタップアニメーション
-        if let cell = collectionView.cellForItem(at: indexPath) {
-            UIView.animate(withDuration: 0.1, animations: {
-                cell.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
-            }) { _ in
-                UIView.animate(withDuration: 0.1) {
-                    cell.transform = .identity
-                }
-            }
-        }
+    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        guard !animatedCells.contains(indexPath) else { return }
+        animatedCells.insert(indexPath)
+        let delay = Double(indexPath.item % 8) * 0.05
+        cell.fadeInWithSlide(delay: delay)
+    }
 
-        // 詳細画面へ遷移
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let record = fetchedResultsController.object(at: indexPath)
         let detailVC = RecordDetailViewController(record: record)
         navigationController?.pushViewController(detailVC, animated: true)
@@ -226,6 +224,7 @@ extension FavoriteListViewController: UICollectionViewDelegateFlowLayout {
 extension FavoriteListViewController: NSFetchedResultsControllerDelegate {
 
     func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        animatedCells.removeAll()
         collectionView.reloadData()
         updateEmptyState()
     }

@@ -2,32 +2,36 @@
 //  UITabBar+App.swift
 //  mennikki
 //
-//  Created by Claude on 2026/02/07.
-//
 
 import UIKit
 
 extension UITabBar {
     /// Duolingo風のスタイルを適用
     func applyAppStyle() {
-        // 背景色を白に設定
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = .white
 
-        // シャドウの設定
-        appearance.shadowColor = UIColor.black.withAlphaComponent(0.1)
+        // Duolingo風: 上にハードなボーダーライン
+        appearance.shadowColor = .appBorder
 
-        // 各状態に適用
+        // アイテムのフォントを Rounded に
+        let normalAttrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.rounded(ofSize: 10, weight: .semibold),
+            .foregroundColor: UIColor.appSecondaryText
+        ]
+        let selectedAttrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.rounded(ofSize: 10, weight: .bold),
+            .foregroundColor: UIColor.appPrimary
+        ]
+
+        appearance.stackedLayoutAppearance.normal.titleTextAttributes = normalAttrs
+        appearance.stackedLayoutAppearance.selected.titleTextAttributes = selectedAttrs
+
         standardAppearance = appearance
-        if #available(iOS 15.0, *) {
-            scrollEdgeAppearance = appearance
-        }
+        scrollEdgeAppearance = appearance
 
-        // tintColor（選択時の色）
         tintColor = .appPrimary
-
-        // unselectedItemTintColor（未選択時の色）
         unselectedItemTintColor = .appSecondaryText
     }
 }

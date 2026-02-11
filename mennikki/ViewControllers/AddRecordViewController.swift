@@ -17,85 +17,116 @@ class AddRecordViewController: UIViewController {
     private var isEditMode: Bool { recordToEdit != nil }
 
     private var selectedRamenType: RamenType?
+    private var selectedPrefecture: Prefecture?
     private var selectedImage: UIImage?
+
+    // ラーメン種類チップボタンを保持
+    private var typeChipButtons: [UIButton] = []
 
     // MARK: - UI Components
 
     private let scrollView: UIScrollView = {
-        let scrollView = UIScrollView()
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        return scrollView
+        let sv = UIScrollView()
+        sv.showsVerticalScrollIndicator = false
+        sv.translatesAutoresizingMaskIntoConstraints = false
+        return sv
     }()
 
     private let contentStackView: UIStackView = {
-        let stackView = UIStackView()
-        stackView.axis = .vertical
-        stackView.spacing = 20
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        return stackView
+        let sv = UIStackView()
+        sv.axis = .vertical
+        sv.spacing = 20
+        sv.translatesAutoresizingMaskIntoConstraints = false
+        return sv
     }()
 
     // 店名
     private let storeNameTextField: UITextField = {
-        let textField = UITextField()
-        textField.placeholder = "店舗名を入力"
-        textField.font = .appBody
-        textField.borderStyle = .none
-        textField.backgroundColor = .white
-        textField.layer.cornerRadius = 12
-        textField.layer.borderWidth = 2
-        textField.layer.borderColor = UIColor.appSecondaryText.withAlphaComponent(0.2).cgColor
-        textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
-        textField.leftViewMode = .always
-        textField.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
-        textField.rightViewMode = .always
-        textField.translatesAutoresizingMaskIntoConstraints = false
-        return textField
+        let tf = UITextField()
+        tf.placeholder = "店舗名を入力"
+        tf.font = .appBody
+        tf.borderStyle = .none
+        tf.backgroundColor = .white
+        tf.layer.cornerRadius = 12
+        tf.layer.borderWidth = 2
+        tf.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.2).cgColor
+        tf.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
+        tf.leftViewMode = .always
+        tf.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
+        tf.rightViewMode = .always
+        tf.translatesAutoresizingMaskIntoConstraints = false
+        return tf
     }()
 
-    // ラーメンの種類
-    private let ramenTypeButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("ラーメンの種類を選択", for: .normal)
-        button.titleLabel?.font = .appRamenType
-        button.setTitleColor(.appText, for: .normal)
-        button.backgroundColor = .appTagBackground
-        button.layer.cornerRadius = 12
-        button.contentEdgeInsets = UIEdgeInsets(top: 12, left: 16, bottom: 12, right: 16)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
+    // ラーメン種類チップスクロール
+    private let ramenTypeScrollView: UIScrollView = {
+        let sv = UIScrollView()
+        sv.showsHorizontalScrollIndicator = false
+        sv.translatesAutoresizingMaskIntoConstraints = false
+        return sv
+    }()
+
+    private let ramenTypeChipsStack: UIStackView = {
+        let sv = UIStackView()
+        sv.axis = .horizontal
+        sv.spacing = 8
+        sv.translatesAutoresizingMaskIntoConstraints = false
+        return sv
     }()
 
     // 訪問日
     private let visitDatePicker: UIDatePicker = {
-        let datePicker = UIDatePicker()
-        datePicker.datePickerMode = .date
-        datePicker.preferredDatePickerStyle = .inline
-        datePicker.maximumDate = Date()
-        datePicker.date = Date()
-        datePicker.backgroundColor = .white
-        datePicker.layer.cornerRadius = 12
-        datePicker.translatesAutoresizingMaskIntoConstraints = false
-        return datePicker
+        let dp = UIDatePicker()
+        dp.datePickerMode = .date
+        dp.preferredDatePickerStyle = .inline
+        dp.maximumDate = Date()
+        dp.date = Date()
+        dp.backgroundColor = .white
+        dp.layer.cornerRadius = 12
+        dp.tintColor = .appPrimary
+        dp.translatesAutoresizingMaskIntoConstraints = false
+        return dp
     }()
 
     // 費用
     private let costTextField: UITextField = {
-        let textField = UITextField()
-        textField.placeholder = "費用（円）"
-        textField.font = .appBody
-        textField.keyboardType = .numberPad
-        textField.borderStyle = .none
-        textField.backgroundColor = .white
-        textField.layer.cornerRadius = 12
-        textField.layer.borderWidth = 2
-        textField.layer.borderColor = UIColor.appSecondaryText.withAlphaComponent(0.2).cgColor
-        textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
-        textField.leftViewMode = .always
-        textField.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
-        textField.rightViewMode = .always
-        textField.translatesAutoresizingMaskIntoConstraints = false
-        return textField
+        let tf = UITextField()
+        tf.placeholder = "費用（円）"
+        tf.font = .appBody
+        tf.keyboardType = .numberPad
+        tf.borderStyle = .none
+        tf.backgroundColor = .white
+        tf.layer.cornerRadius = 12
+        tf.layer.borderWidth = 2
+        tf.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.2).cgColor
+        tf.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
+        tf.leftViewMode = .always
+        tf.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
+        tf.rightViewMode = .always
+        tf.translatesAutoresizingMaskIntoConstraints = false
+        return tf
+    }()
+
+    // 都道府県選択ボタン
+    private let prefectureButton: UIButton = {
+        var config = UIButton.Configuration.plain()
+        config.title = "都道府県を選択"
+        config.baseForegroundColor = .appSecondaryText
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { attrs in
+            var updated = attrs
+            updated.font = UIFont.appBody
+            return updated
+        }
+        config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16)
+        config.background.backgroundColor = .white
+        config.background.cornerRadius = 12
+        let button = UIButton(configuration: config)
+        button.contentHorizontalAlignment = .leading
+        button.layer.cornerRadius = 12
+        button.layer.borderWidth = 2
+        button.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.2).cgColor
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
     }()
 
     // 評価
@@ -107,16 +138,16 @@ class AddRecordViewController: UIViewController {
 
     // コメント
     private let commentTextView: UITextView = {
-        let textView = UITextView()
-        textView.font = .appBody
-        textView.textColor = .appText
-        textView.backgroundColor = .white
-        textView.layer.cornerRadius = 12
-        textView.layer.borderWidth = 2
-        textView.layer.borderColor = UIColor.appSecondaryText.withAlphaComponent(0.2).cgColor
-        textView.textContainerInset = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
-        textView.translatesAutoresizingMaskIntoConstraints = false
-        return textView
+        let tv = UITextView()
+        tv.font = .appBody
+        tv.textColor = .appText
+        tv.backgroundColor = .white
+        tv.layer.cornerRadius = 12
+        tv.layer.borderWidth = 2
+        tv.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.2).cgColor
+        tv.textContainerInset = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
+        tv.translatesAutoresizingMaskIntoConstraints = false
+        return tv
     }()
 
     // 写真選択ボタン
@@ -124,33 +155,57 @@ class AddRecordViewController: UIViewController {
         let button = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 40, weight: .regular)
         button.setImage(UIImage(systemName: "camera.fill", withConfiguration: config), for: .normal)
-        button.tintColor = .appSecondaryText
+        button.tintColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 1)
         button.backgroundColor = .white
         button.layer.cornerRadius = 12
         button.layer.borderWidth = 2
-        button.layer.borderColor = UIColor.appSecondaryText.withAlphaComponent(0.3).cgColor
+        button.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.3).cgColor
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
 
     private let photoImageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
-        imageView.layer.cornerRadius = 12
-        imageView.backgroundColor = .appSecondaryText.withAlphaComponent(0.1)
-        imageView.isHidden = true
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        return imageView
+        let iv = UIImageView()
+        iv.contentMode = .scaleAspectFill
+        iv.clipsToBounds = true
+        iv.layer.cornerRadius = 12
+        iv.backgroundColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.1)
+        iv.isHidden = true
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    // Duolingo風 3D 保存ボタン（画面下部固定）
+    private let saveActionButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("保存する", for: .normal)
+        button.titleLabel?.font = .appButton
+        button.setTitleColor(.white, for: .normal)
+        button.backgroundColor = .appSuccess
+        button.layer.cornerRadius = 16
+        // Duolingo 3D ハードシャドウ
+        button.layer.shadowColor = UIColor(red: 50/255, green: 140/255, blue: 0/255, alpha: 1).cgColor
+        button.layer.shadowOpacity = 1.0
+        button.layer.shadowRadius = 0
+        button.layer.shadowOffset = CGSize(width: 0, height: 5)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
     }()
 
     private lazy var deleteButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("削除", for: .normal)
-        button.titleLabel?.font = .appStoreName
-        button.setTitleColor(.white, for: .normal)
-        button.backgroundColor = .systemRed
-        button.layer.cornerRadius = 24
+        button.setTitle("この記録を削除", for: .normal)
+        button.titleLabel?.font = .appButton
+        button.setTitleColor(.appPrimary, for: .normal)
+        button.backgroundColor = .white
+        button.layer.cornerRadius = 16
+        button.layer.borderWidth = 2
+        button.layer.borderColor = UIColor.appBorder.cgColor
+        // Duolingo 3D ハードシャドウ
+        button.layer.shadowColor = UIColor.appBorder.cgColor
+        button.layer.shadowOpacity = 1.0
+        button.layer.shadowRadius = 0
+        button.layer.shadowOffset = CGSize(width: 0, height: 4)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.isHidden = !isEditMode
         return button
@@ -177,8 +232,8 @@ class AddRecordViewController: UIViewController {
         setupConstraints()
         setupActions()
         setupKeyboardHandling()
+        buildRamenTypeChips()
 
-        // 編集モードの場合は既存データを読み込む
         if isEditMode {
             loadExistingData()
         }
@@ -187,170 +242,301 @@ class AddRecordViewController: UIViewController {
     // MARK: - Setup
 
     private func setupUI() {
-        view.backgroundColor = .appBackground
+        view.backgroundColor = UIColor(red: 247/255, green: 247/255, blue: 247/255, alpha: 1)
 
         view.addSubview(scrollView)
         scrollView.addSubview(contentStackView)
 
-        // セクションラベルとフォーム要素を追加
-        contentStackView.addArrangedSubview(createSectionView(title: "店舗名", content: storeNameTextField))
-        contentStackView.addArrangedSubview(createSectionView(title: "ラーメンの種類", content: ramenTypeButton))
-        contentStackView.addArrangedSubview(createSectionView(title: "訪問日", content: visitDatePicker))
-        contentStackView.addArrangedSubview(createSectionView(title: "費用", content: costTextField))
-        contentStackView.addArrangedSubview(createSectionView(title: "評価", content: starRatingView))
-        contentStackView.addArrangedSubview(createSectionView(title: "コメント", content: commentTextView))
-        contentStackView.addArrangedSubview(createSectionView(title: "写真", content: createPhotoSection()))
+        contentStackView.addArrangedSubview(makeSectionView(title: "店舗名", content: storeNameTextField))
+        contentStackView.addArrangedSubview(makeSectionView(title: "ラーメンの種類", content: ramenTypeScrollView))
+        contentStackView.addArrangedSubview(makeSectionView(title: "都道府県", content: prefectureButton))
+        contentStackView.addArrangedSubview(makeSectionView(title: "訪問日", content: visitDatePicker))
+        contentStackView.addArrangedSubview(makeSectionView(title: "費用", content: costTextField))
+        contentStackView.addArrangedSubview(makeSectionView(title: "評価", content: starRatingView))
+        contentStackView.addArrangedSubview(makeSectionView(title: "コメント", content: commentTextView))
+        contentStackView.addArrangedSubview(makeSectionView(title: "写真", content: makePhotoSection()))
 
-        // 編集モードの場合は削除ボタンを追加
+        view.addSubview(saveActionButton)
+
         if isEditMode {
             view.addSubview(deleteButton)
         }
+
+        storeNameTextField.delegate = self
+        costTextField.delegate = self
     }
 
     private func setupNavigationBar() {
         title = isEditMode ? "記録を編集" : "新規記録"
+        navigationItem.largeTitleDisplayMode = .never
 
         navigationItem.leftBarButtonItem = UIBarButtonItem(
-            title: "キャンセル",
+            image: UIImage(systemName: "xmark"),
             style: .plain,
             target: self,
             action: #selector(cancelTapped)
-        )
-
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "保存",
-            style: .done,
-            target: self,
-            action: #selector(saveTapped)
         )
     }
 
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Scroll View
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            // Content Stack View
             contentStackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 16),
             contentStackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 16),
             contentStackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -16),
             contentStackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -16),
             contentStackView.widthAnchor.constraint(equalTo: scrollView.widthAnchor, constant: -32),
 
-            // Store Name TextField
             storeNameTextField.heightAnchor.constraint(equalToConstant: 48),
-
-            // Cost TextField
+            prefectureButton.heightAnchor.constraint(equalToConstant: 48),
             costTextField.heightAnchor.constraint(equalToConstant: 48),
-
-            // Star Rating View
             starRatingView.heightAnchor.constraint(equalToConstant: 50),
-
-            // Comment TextView
             commentTextView.heightAnchor.constraint(greaterThanOrEqualToConstant: 100),
-
-            // Photo Button
             photoButton.heightAnchor.constraint(equalToConstant: 200),
+            photoImageView.heightAnchor.constraint(equalToConstant: 200),
 
-            // Photo ImageView
-            photoImageView.heightAnchor.constraint(equalToConstant: 200)
+            // チップスクロールビュー高さ
+            ramenTypeScrollView.heightAnchor.constraint(equalToConstant: 44),
+
+            // Duolingo風 保存ボタン（画面下部固定）
+            saveActionButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            saveActionButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            saveActionButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12),
+            saveActionButton.heightAnchor.constraint(equalToConstant: 54)
         ])
 
-        // 削除ボタンの制約（編集モード時のみ）
+        // スクロールビューの下部余白（ボタンと被らないように）
+        scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 80, right: 0)
+
         if isEditMode {
             NSLayoutConstraint.activate([
                 deleteButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
                 deleteButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-                deleteButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+                deleteButton.bottomAnchor.constraint(equalTo: saveActionButton.topAnchor, constant: -10),
                 deleteButton.heightAnchor.constraint(equalToConstant: 50)
             ])
-
-            // スクロールビューの下部マージンを調整（削除ボタンの分）
-            scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 70, right: 0)
         }
     }
 
     private func setupActions() {
-        ramenTypeButton.addTarget(self, action: #selector(ramenTypeButtonTapped), for: .touchUpInside)
+        prefectureButton.addTarget(self, action: #selector(prefectureButtonTapped), for: .touchUpInside)
         photoButton.addTarget(self, action: #selector(photoButtonTapped), for: .touchUpInside)
+
+        // 保存ボタン: Duolingo 3D 押し込みアニメーション
+        saveActionButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+        saveActionButton.addTarget(self, action: #selector(saveButtonDown), for: .touchDown)
+        saveActionButton.addTarget(self, action: #selector(saveButtonUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])
 
         if isEditMode {
             deleteButton.addTarget(self, action: #selector(deleteButtonTapped), for: .touchUpInside)
         }
 
-        starRatingView.onRatingChanged = { [weak self] rating in
-            print("Rating changed: \(rating)")
-        }
+        starRatingView.onRatingChanged = { _ in }
     }
 
     private func setupKeyboardHandling() {
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
-        view.addGestureRecognizer(tapGesture)
+        let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
+    }
+
+    // MARK: - Ramen Type Chips
+
+    private func buildRamenTypeChips() {
+        ramenTypeScrollView.addSubview(ramenTypeChipsStack)
+        NSLayoutConstraint.activate([
+            ramenTypeChipsStack.topAnchor.constraint(equalTo: ramenTypeScrollView.topAnchor),
+            ramenTypeChipsStack.leadingAnchor.constraint(equalTo: ramenTypeScrollView.leadingAnchor),
+            ramenTypeChipsStack.trailingAnchor.constraint(equalTo: ramenTypeScrollView.trailingAnchor),
+            ramenTypeChipsStack.bottomAnchor.constraint(equalTo: ramenTypeScrollView.bottomAnchor),
+            ramenTypeChipsStack.heightAnchor.constraint(equalTo: ramenTypeScrollView.heightAnchor)
+        ])
+
+        for type in RamenType.allCases {
+            let chip = makeChipButton(for: type)
+            ramenTypeChipsStack.addArrangedSubview(chip)
+            typeChipButtons.append(chip)
+        }
+    }
+
+    private func makeChipButton(for type: RamenType) -> UIButton {
+        let color = UIColor.colorForRamenType(type)
+        let button = UIButton(type: .custom)
+        button.setTitle(type.rawValue, for: .normal)
+        button.titleLabel?.font = UIFont.rounded(ofSize: 13, weight: .bold)
+        button.setTitleColor(color, for: .normal)
+        button.backgroundColor = color.withAlphaComponent(0.12)
+        button.layer.cornerRadius = 22
+        button.layer.borderWidth = 2
+        button.layer.borderColor = UIColor.clear.cgColor
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        // ラベル幅 + 左右28ptのパディング相当を確保
+        let titleWidth = (type.rawValue as NSString)
+            .size(withAttributes: [.font: UIFont.rounded(ofSize: 13, weight: .bold)]).width
+        button.widthAnchor.constraint(equalToConstant: ceil(titleWidth) + 28).isActive = true
+
+        button.addTarget(self, action: #selector(chipTapped(_:)), for: .touchUpInside)
+        // タグでRamenTypeを特定
+        if let index = RamenType.allCases.firstIndex(of: type) {
+            button.tag = index
+        }
+        return button
+    }
+
+    private func selectChip(for type: RamenType) {
+        for (i, button) in typeChipButtons.enumerated() {
+            let chipType = RamenType.allCases[i]
+            let isSelected = chipType == type
+            let color = UIColor.colorForRamenType(chipType)
+
+            UIView.animate(withDuration: 0.2) {
+                if isSelected {
+                    button.backgroundColor = color
+                    button.setTitleColor(.white, for: .normal)
+                    button.layer.borderColor = color.cgColor
+                    button.transform = CGAffineTransform(scaleX: 1.05, y: 1.05)
+                } else {
+                    button.backgroundColor = color.withAlphaComponent(0.12)
+                    button.setTitleColor(color, for: .normal)
+                    button.layer.borderColor = UIColor.clear.cgColor
+                    button.transform = .identity
+                }
+            }
+        }
     }
 
     // MARK: - Helper Methods
 
-    private func createSectionView(title: String, content: UIView) -> UIView {
-        let containerView = UIView()
-        containerView.translatesAutoresizingMaskIntoConstraints = false
+    private func makeSectionView(title: String, content: UIView) -> UIView {
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
 
         let titleLabel = UILabel()
-        titleLabel.text = title
-        titleLabel.font = .appSectionHeader
-        titleLabel.textColor = .appText
+        let attrString = NSAttributedString(
+            string: title.uppercased(),
+            attributes: [
+                .font: UIFont.rounded(ofSize: 12, weight: .heavy),
+                .foregroundColor: UIColor.appSecondaryText,
+                .kern: 1.5
+            ]
+        )
+        titleLabel.attributedText = attrString
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        containerView.addSubview(titleLabel)
-        containerView.addSubview(content)
+        container.addSubview(titleLabel)
+        container.addSubview(content)
 
         NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            titleLabel.topAnchor.constraint(equalTo: container.topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 4),
 
             content.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            content.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            content.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            content.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+            content.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            content.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
 
-        return containerView
+        return container
     }
 
-    private func createPhotoSection() -> UIView {
-        let containerView = UIView()
-        containerView.translatesAutoresizingMaskIntoConstraints = false
+    private func makePhotoSection() -> UIView {
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
 
-        containerView.addSubview(photoButton)
-        containerView.addSubview(photoImageView)
+        container.addSubview(photoButton)
+        container.addSubview(photoImageView)
 
         NSLayoutConstraint.activate([
-            photoButton.topAnchor.constraint(equalTo: containerView.topAnchor),
-            photoButton.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            photoButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            photoButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            photoButton.topAnchor.constraint(equalTo: container.topAnchor),
+            photoButton.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            photoButton.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            photoButton.bottomAnchor.constraint(equalTo: container.bottomAnchor),
 
-            photoImageView.topAnchor.constraint(equalTo: containerView.topAnchor),
-            photoImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            photoImageView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            photoImageView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+            photoImageView.topAnchor.constraint(equalTo: container.topAnchor),
+            photoImageView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            photoImageView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            photoImageView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
 
-        return containerView
+        return container
     }
 
     // MARK: - Actions
+
+    @objc private func prefectureButtonTapped() {
+        let alert = UIAlertController(title: "都道府県を選択", message: nil, preferredStyle: .actionSheet)
+
+        if selectedPrefecture != nil {
+            alert.addAction(UIAlertAction(title: "選択を解除", style: .destructive) { [weak self] _ in
+                self?.selectedPrefecture = nil
+                self?.updatePrefectureButton(nil)
+            })
+        }
+
+        for pref in Prefecture.allCases {
+            alert.addAction(UIAlertAction(title: pref.rawValue, style: .default) { [weak self] _ in
+                self?.selectedPrefecture = pref
+                self?.updatePrefectureButton(pref)
+            })
+        }
+
+        alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel))
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = prefectureButton
+            popover.sourceRect = prefectureButton.bounds
+        }
+
+        present(alert, animated: true)
+    }
+
+    private func updatePrefectureButton(_ prefecture: Prefecture?) {
+        var config = prefectureButton.configuration ?? UIButton.Configuration.plain()
+        if let prefecture {
+            config.title = prefecture.rawValue
+            config.baseForegroundColor = .appText
+        } else {
+            config.title = "都道府県を選択"
+            config.baseForegroundColor = .appSecondaryText
+        }
+        prefectureButton.configuration = config
+    }
+
+    @objc private func saveButtonDown() {
+        UIView.animate(withDuration: 0.08, delay: 0, options: [.allowUserInteraction, .beginFromCurrentState]) {
+            self.saveActionButton.transform = CGAffineTransform(translationX: 0, y: 5)
+            self.saveActionButton.layer.shadowOffset = .zero
+        }
+    }
+
+    @objc private func saveButtonUp() {
+        UIView.animate(withDuration: 0.15, delay: 0, usingSpringWithDamping: 0.5, initialSpringVelocity: 0.8) {
+            self.saveActionButton.transform = .identity
+            self.saveActionButton.layer.shadowOffset = CGSize(width: 0, height: 5)
+        }
+    }
+
+    @objc private func chipTapped(_ sender: UIButton) {
+        let types = RamenType.allCases
+        guard sender.tag < types.count else { return }
+        let type = types[sender.tag]
+        selectedRamenType = type
+        selectChip(for: type)
+        sender.bounceAnimation(scale: 1.1, duration: 0.12)
+    }
 
     @objc private func cancelTapped() {
         dismiss(animated: true)
     }
 
     @objc private func saveTapped() {
-        // バリデーション
         guard let storeName = storeNameTextField.text, !storeName.isEmpty else {
+            shakeView(storeNameTextField)
             showAlert(title: "エラー", message: "店舗名を入力してください")
             return
         }
@@ -360,29 +546,25 @@ class AddRecordViewController: UIViewController {
             return
         }
 
-        // 費用の取得
+        guard starRatingView.rating > 0 else {
+            shakeView(starRatingView)
+            showAlert(title: "エラー", message: "評価を選択してください")
+            return
+        }
+
         let cost = Int16(costTextField.text ?? "0") ?? 0
-
-        // 評価の取得
         let rating = Int16(starRatingView.rating)
-
-        // コメントの取得
         let comment = commentTextView.text.isEmpty ? nil : commentTextView.text
 
-        // 写真データの取得
         var photoData: Data?
         if let image = selectedImage {
-            // 画像をリサイズして保存
-            if let resizedImage = resizeImage(image, maxWidth: 1024) {
-                photoData = resizedImage.jpegData(compressionQuality: 0.8)
-            }
-        } else if isEditMode, let existingPhotoData = recordToEdit?.photo {
-            // 編集モードで新しい写真が選択されていない場合は既存の写真を保持
-            photoData = existingPhotoData
+            let resized = resizeImage(image)
+            photoData = resized.jpegData(compressionQuality: 0.75)
+        } else if isEditMode, let existing = recordToEdit?.photo {
+            photoData = existing
         }
 
         if isEditMode, let record = recordToEdit {
-            // 編集モード: 既存レコードを更新
             CoreDataManager.shared.updateRecord(
                 record,
                 storeName: storeName,
@@ -392,10 +574,10 @@ class AddRecordViewController: UIViewController {
                 rating: rating,
                 comment: comment,
                 photo: photoData,
-                isFavorite: record.isFavorite
+                isFavorite: record.isFavorite,
+                prefecture: selectedPrefecture
             )
         } else {
-            // 新規作成モード
             CoreDataManager.shared.createRecord(
                 storeName: storeName,
                 ramenType: ramenType,
@@ -403,55 +585,51 @@ class AddRecordViewController: UIViewController {
                 cost: cost,
                 rating: rating,
                 comment: comment,
-                photo: photoData
+                photo: photoData,
+                prefecture: selectedPrefecture
             )
         }
 
-        // 保存成功のフィードバック
         showSuccessAnimation()
-
-        // 画面を閉じる
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.dismiss(animated: true)
         }
     }
 
-    @objc private func ramenTypeButtonTapped() {
-        let alertController = UIAlertController(title: "ラーメンの種類", message: "選択してください", preferredStyle: .actionSheet)
-
-        for type in RamenType.allCases {
-            let action = UIAlertAction(title: type.rawValue, style: .default) { [weak self] _ in
-                self?.selectedRamenType = type
-                self?.ramenTypeButton.setTitle(type.rawValue, for: .normal)
-                self?.ramenTypeButton.backgroundColor = .appTagBackground
-            }
-            alertController.addAction(action)
-        }
-
-        let cancelAction = UIAlertAction(title: "キャンセル", style: .cancel)
-        alertController.addAction(cancelAction)
-
-        // iPadでのクラッシュ対策
-        if let popoverController = alertController.popoverPresentationController {
-            popoverController.sourceView = ramenTypeButton
-            popoverController.sourceRect = ramenTypeButton.bounds
-        }
-
-        present(alertController, animated: true)
-    }
-
     @objc private func photoButtonTapped() {
-        var configuration = PHPickerConfiguration()
-        configuration.filter = .images
-        configuration.selectionLimit = 1
-
-        let picker = PHPickerViewController(configuration: configuration)
+        var config = PHPickerConfiguration()
+        config.filter = .images
+        config.selectionLimit = 1
+        let picker = PHPickerViewController(configuration: config)
         picker.delegate = self
         present(picker, animated: true)
     }
 
     @objc private func dismissKeyboard() {
         view.endEditing(true)
+    }
+
+    @objc private func deleteButtonTapped() {
+        let alert = UIAlertController(
+            title: "記録を削除しますか？",
+            message: "この操作は取り消せません",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel))
+        alert.addAction(UIAlertAction(title: "削除", style: .destructive) { [weak self] _ in
+            guard let self, let record = self.recordToEdit else { return }
+            // dismiss 後に詳細画面も pop して一覧へ戻るため、事前に参照を取得
+            let hostNav = self.presentingViewController?.navigationController
+            CoreDataManager.shared.deleteRecord(record)
+            UIView.animate(withDuration: 0.3, animations: {
+                self.view.alpha = 0
+            }) { _ in
+                self.dismiss(animated: false) {
+                    hostNav?.popViewController(animated: true)
+                }
+            }
+        })
+        present(alert, animated: true)
     }
 
     // MARK: - Helper Methods
@@ -462,69 +640,76 @@ class AddRecordViewController: UIViewController {
         present(alert, animated: true)
     }
 
+    private func shakeView(_ view: UIView) {
+        let animation = CAKeyframeAnimation(keyPath: "transform.translation.x")
+        animation.timingFunction = CAMediaTimingFunction(name: .linear)
+        animation.duration = 0.4
+        animation.values = [-8, 8, -6, 6, -4, 4, 0]
+        view.layer.add(animation, forKey: "shake")
+    }
+
     private func showSuccessAnimation() {
-        // 簡易的な成功フィードバック
-        let checkmarkView = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
-        checkmarkView.tintColor = .appSuccess
-        checkmarkView.frame = CGRect(x: 0, y: 0, width: 100, height: 100)
-        checkmarkView.center = view.center
-        checkmarkView.alpha = 0
+        let checkmark = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
+        checkmark.tintColor = .appSuccess
+        checkmark.frame = CGRect(x: 0, y: 0, width: 100, height: 100)
+        checkmark.center = view.center
+        checkmark.alpha = 0
+        checkmark.transform = CGAffineTransform(scaleX: 0.5, y: 0.5)
+        view.addSubview(checkmark)
 
-        view.addSubview(checkmarkView)
-
-        UIView.animate(withDuration: 0.3, animations: {
-            checkmarkView.alpha = 1
-            checkmarkView.transform = CGAffineTransform(scaleX: 1.2, y: 1.2)
-        }) { _ in
-            UIView.animate(withDuration: 0.2) {
-                checkmarkView.alpha = 0
-                checkmarkView.transform = .identity
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.6, initialSpringVelocity: 0.8) {
+            checkmark.alpha = 1
+            checkmark.transform = CGAffineTransform(scaleX: 1.2, y: 1.2)
+        } completion: { _ in
+            UIView.animate(withDuration: 0.2, delay: 0.2) {
+                checkmark.alpha = 0
             }
         }
     }
 
-    private func resizeImage(_ image: UIImage, maxWidth: CGFloat) -> UIImage? {
-        let scale = maxWidth / image.size.width
-        let newHeight = image.size.height * scale
-        let newSize = CGSize(width: maxWidth, height: newHeight)
+    /// 長辺を maxDimension 以下にリサイズ（縦横比維持）
+    /// UIGraphicsImageRenderer を使用（iOS 17+ 非推奨APIを回避）
+    private func resizeImage(_ image: UIImage, maxDimension: CGFloat = 800) -> UIImage {
+        let size = image.size
+        let longer = max(size.width, size.height)
+        guard longer > maxDimension else { return image }
 
-        UIGraphicsBeginImageContextWithOptions(newSize, false, 0.0)
-        image.draw(in: CGRect(origin: .zero, size: newSize))
-        let resizedImage = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
+        let scale = maxDimension / longer
+        let newSize = CGSize(width: (size.width * scale).rounded(),
+                             height: (size.height * scale).rounded())
 
-        return resizedImage
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: newSize))
+        }
     }
 
     private func loadExistingData() {
         guard let record = recordToEdit else { return }
 
-        // 店舗名
         storeNameTextField.text = record.storeName
 
-        // ラーメンの種類
         if let ramenType = RamenType(rawValue: record.ramenType ?? "") {
             selectedRamenType = ramenType
-            ramenTypeButton.setTitle(ramenType.rawValue, for: .normal)
+            selectChip(for: ramenType)
         }
 
-        // 訪問日
         if let visitDate = record.visitDate {
             visitDatePicker.date = visitDate
         }
 
-        // 費用
         if record.cost > 0 {
             costTextField.text = "\(record.cost)"
         }
 
-        // 評価
         starRatingView.rating = Int(record.rating)
-
-        // コメント
         commentTextView.text = record.comment
 
-        // 写真
+        if let prefRaw = record.prefecture, let pref = Prefecture(rawValue: prefRaw) {
+            selectedPrefecture = pref
+            updatePrefectureButton(pref)
+        }
+
         if let photoData = record.photo, let image = UIImage(data: photoData) {
             selectedImage = image
             photoImageView.image = image
@@ -532,31 +717,27 @@ class AddRecordViewController: UIViewController {
             photoButton.isHidden = true
         }
     }
+}
 
-    @objc private func deleteButtonTapped() {
-        let alert = UIAlertController(
-            title: "記録を削除しますか？",
-            message: "この操作は取り消せません",
-            preferredStyle: .alert
-        )
+// MARK: - UITextFieldDelegate (focus animation)
 
-        alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel))
+extension AddRecordViewController: UITextFieldDelegate {
 
-        alert.addAction(UIAlertAction(title: "削除", style: .destructive) { [weak self] _ in
-            guard let self = self, let record = self.recordToEdit else { return }
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        UIView.animate(withDuration: 0.2) {
+            textField.layer.borderColor = UIColor.appSecondary.cgColor
+        }
+    }
 
-            // Core Dataから削除
-            CoreDataManager.shared.deleteRecord(record)
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        UIView.animate(withDuration: 0.2) {
+            textField.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.2).cgColor
+        }
+    }
 
-            // アニメーション付きで画面を閉じる
-            UIView.animate(withDuration: 0.3, animations: {
-                self.view.alpha = 0
-            }) { _ in
-                self.dismiss(animated: true)
-            }
-        })
-
-        present(alert, animated: true)
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
     }
 }
 
@@ -566,11 +747,9 @@ extension AddRecordViewController: PHPickerViewControllerDelegate {
 
     func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
         picker.dismiss(animated: true)
-
         guard let provider = results.first?.itemProvider else { return }
-
         if provider.canLoadObject(ofClass: UIImage.self) {
-            provider.loadObject(ofClass: UIImage.self) { [weak self] image, error in
+            provider.loadObject(ofClass: UIImage.self) { [weak self] image, _ in
                 DispatchQueue.main.async {
                     if let image = image as? UIImage {
                         self?.selectedImage = image
