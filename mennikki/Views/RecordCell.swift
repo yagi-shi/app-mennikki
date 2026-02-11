@@ -31,11 +31,20 @@ class RecordCell: UICollectionViewCell {
         return iv
     }()
 
+    private let topGradientView: UIView = {
+        let v = UIView()
+        v.isUserInteractionEnabled = false
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
+
+    private let topGradientLayer = CAGradientLayer()
+
     private let placeholderIcon: UIImageView = {
         let iv = UIImageView()
-        let cfg = UIImage.SymbolConfiguration(pointSize: 30, weight: .thin)
+        let cfg = UIImage.SymbolConfiguration(pointSize: 40, weight: .light)
         iv.image = UIImage(systemName: "fork.knife", withConfiguration: cfg)
-        iv.tintColor = UIColor.white.withAlphaComponent(0.75)
+        iv.tintColor = UIColor.white.withAlphaComponent(0.6)
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
@@ -65,13 +74,18 @@ class RecordCell: UICollectionViewCell {
         return l
     }()
 
+    private let typeTagContainer: UIView = {
+        let v = UIView()
+        v.layer.cornerRadius = 8
+        v.clipsToBounds = true
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
+
     private let typeTagLabel: UILabel = {
         let l = UILabel()
         l.font = .appTag
         l.textColor = .white
-        l.textAlignment = .center
-        l.layer.cornerRadius = 8
-        l.clipsToBounds = true
         l.translatesAutoresizingMaskIntoConstraints = false
         return l
     }()
@@ -84,13 +98,6 @@ class RecordCell: UICollectionViewCell {
         return sv
     }()
 
-    private let dateLabel: UILabel = {
-        let l = UILabel()
-        l.font = .appCaption
-        l.textColor = .appSecondaryText
-        l.translatesAutoresizingMaskIntoConstraints = false
-        return l
-    }()
 
     // MARK: - Init
 
@@ -131,12 +138,14 @@ class RecordCell: UICollectionViewCell {
 
         contentView.addSubview(topArea)
         topArea.addSubview(photoImageView)
+        topGradientView.layer.addSublayer(topGradientLayer)
+        topArea.addSubview(topGradientView)
         topArea.addSubview(placeholderIcon)
         contentView.addSubview(favoriteIcon)
         contentView.addSubview(storeNameLabel)
-        contentView.addSubview(typeTagLabel)
+        contentView.addSubview(typeTagContainer)
+        typeTagContainer.addSubview(typeTagLabel)
         contentView.addSubview(starsStack)
-        contentView.addSubview(dateLabel)
     }
 
     private func setupConstraints() {
@@ -145,7 +154,7 @@ class RecordCell: UICollectionViewCell {
             topArea.topAnchor.constraint(equalTo: contentView.topAnchor),
             topArea.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             topArea.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            topArea.heightAnchor.constraint(equalTo: contentView.heightAnchor, multiplier: 0.48),
+            topArea.heightAnchor.constraint(equalTo: contentView.heightAnchor, multiplier: 0.60),
 
             // 写真
             photoImageView.topAnchor.constraint(equalTo: topArea.topAnchor),
@@ -153,11 +162,17 @@ class RecordCell: UICollectionViewCell {
             photoImageView.trailingAnchor.constraint(equalTo: topArea.trailingAnchor),
             photoImageView.bottomAnchor.constraint(equalTo: topArea.bottomAnchor),
 
+            // グラデーションオーバーレイ
+            topGradientView.topAnchor.constraint(equalTo: topArea.topAnchor),
+            topGradientView.leadingAnchor.constraint(equalTo: topArea.leadingAnchor),
+            topGradientView.trailingAnchor.constraint(equalTo: topArea.trailingAnchor),
+            topGradientView.bottomAnchor.constraint(equalTo: topArea.bottomAnchor),
+
             // プレースホルダーアイコン
             placeholderIcon.centerXAnchor.constraint(equalTo: topArea.centerXAnchor),
             placeholderIcon.centerYAnchor.constraint(equalTo: topArea.centerYAnchor),
-            placeholderIcon.widthAnchor.constraint(equalToConstant: 36),
-            placeholderIcon.heightAnchor.constraint(equalToConstant: 36),
+            placeholderIcon.widthAnchor.constraint(equalToConstant: 52),
+            placeholderIcon.heightAnchor.constraint(equalToConstant: 52),
 
             // お気に入りバッジ
             favoriteIcon.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
@@ -170,25 +185,27 @@ class RecordCell: UICollectionViewCell {
             storeNameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
             storeNameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
 
-            // 種類タグ
-            typeTagLabel.topAnchor.constraint(equalTo: storeNameLabel.bottomAnchor, constant: 6),
-            typeTagLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
-            typeTagLabel.heightAnchor.constraint(equalToConstant: 18),
+            // 種類タグ（コンテナ）
+            typeTagContainer.topAnchor.constraint(equalTo: storeNameLabel.bottomAnchor, constant: 6),
+            typeTagContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+
+            // 種類タグ（ラベル：コンテナ内パディング）
+            typeTagLabel.topAnchor.constraint(equalTo: typeTagContainer.topAnchor, constant: 3),
+            typeTagLabel.bottomAnchor.constraint(equalTo: typeTagContainer.bottomAnchor, constant: -3),
+            typeTagLabel.leadingAnchor.constraint(equalTo: typeTagContainer.leadingAnchor, constant: 7),
+            typeTagLabel.trailingAnchor.constraint(equalTo: typeTagContainer.trailingAnchor, constant: -7),
 
             // 星評価
-            starsStack.centerYAnchor.constraint(equalTo: typeTagLabel.centerYAnchor),
-            starsStack.leadingAnchor.constraint(equalTo: typeTagLabel.trailingAnchor, constant: 5),
+            starsStack.centerYAnchor.constraint(equalTo: typeTagContainer.centerYAnchor),
+            starsStack.leadingAnchor.constraint(equalTo: typeTagContainer.trailingAnchor, constant: 5),
 
-            // 日付
-            dateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
-            dateLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8),
         ])
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        // シャドウパスを更新してパフォーマンス向上
         layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 16).cgPath
+        topGradientLayer.frame = topGradientView.bounds
     }
 
     // MARK: - Configure
@@ -200,15 +217,8 @@ class RecordCell: UICollectionViewCell {
         let typeColor = UIColor.colorForRamenType(ramenType)
 
         // 種類タグ
-        typeTagLabel.text = " \(ramenType.rawValue) "
-        typeTagLabel.backgroundColor = typeColor
-
-        // 日付
-        if let date = record.visitDate {
-            let fmt = DateFormatter()
-            fmt.dateFormat = "M/d"
-            dateLabel.text = fmt.string(from: date)
-        }
+        typeTagLabel.text = ramenType.rawValue
+        typeTagContainer.backgroundColor = typeColor
 
         // 星評価
         let stars = starsStack.arrangedSubviews.compactMap { $0 as? UIImageView }
@@ -230,11 +240,25 @@ class RecordCell: UICollectionViewCell {
             photoImageView.image = image
             photoImageView.isHidden = false
             placeholderIcon.isHidden = true
-            topArea.backgroundColor = .black   // 背景を黒にして写真のコントラスト確保
+            topArea.backgroundColor = .black
+            // 写真下部に薄いグラデーション（白背景への自然な遷移）
+            topGradientLayer.colors = [
+                UIColor.clear.cgColor,
+                UIColor.black.withAlphaComponent(0.18).cgColor
+            ]
+            topGradientLayer.startPoint = CGPoint(x: 0.5, y: 0.4)
+            topGradientLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
         } else {
             photoImageView.isHidden = true
             placeholderIcon.isHidden = false
             topArea.backgroundColor = typeColor
+            // カラー背景に左上ハイライト（立体感）
+            topGradientLayer.colors = [
+                UIColor.white.withAlphaComponent(0.35).cgColor,
+                UIColor.clear.cgColor
+            ]
+            topGradientLayer.startPoint = CGPoint(x: 0, y: 0)
+            topGradientLayer.endPoint = CGPoint(x: 1, y: 1)
         }
 
         // アクセシビリティ
@@ -265,7 +289,7 @@ class RecordCell: UICollectionViewCell {
         super.prepareForReuse()
         storeNameLabel.text = nil
         typeTagLabel.text = nil
-        dateLabel.text = nil
+        typeTagContainer.backgroundColor = .clear
         photoImageView.image = nil
         photoImageView.isHidden = true
         placeholderIcon.isHidden = false

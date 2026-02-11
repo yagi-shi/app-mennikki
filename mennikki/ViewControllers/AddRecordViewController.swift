@@ -192,24 +192,6 @@ class AddRecordViewController: UIViewController {
         return button
     }()
 
-    private lazy var deleteButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("この記録を削除", for: .normal)
-        button.titleLabel?.font = .appButton
-        button.setTitleColor(.appPrimary, for: .normal)
-        button.backgroundColor = .white
-        button.layer.cornerRadius = 16
-        button.layer.borderWidth = 2
-        button.layer.borderColor = UIColor.appBorder.cgColor
-        // Duolingo 3D ハードシャドウ
-        button.layer.shadowColor = UIColor.appBorder.cgColor
-        button.layer.shadowOpacity = 1.0
-        button.layer.shadowRadius = 0
-        button.layer.shadowOffset = CGSize(width: 0, height: 4)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.isHidden = !isEditMode
-        return button
-    }()
 
     // MARK: - Initialization
 
@@ -258,10 +240,6 @@ class AddRecordViewController: UIViewController {
 
         view.addSubview(saveActionButton)
 
-        if isEditMode {
-            view.addSubview(deleteButton)
-        }
-
         storeNameTextField.delegate = self
         costTextField.delegate = self
     }
@@ -276,6 +254,17 @@ class AddRecordViewController: UIViewController {
             target: self,
             action: #selector(cancelTapped)
         )
+
+        if isEditMode {
+            let trashButton = UIBarButtonItem(
+                image: UIImage(systemName: "trash"),
+                style: .plain,
+                target: self,
+                action: #selector(deleteButtonTapped)
+            )
+            trashButton.tintColor = .appPrimary
+            navigationItem.rightBarButtonItem = trashButton
+        }
     }
 
     private func setupConstraints() {
@@ -311,15 +300,6 @@ class AddRecordViewController: UIViewController {
 
         // スクロールビューの下部余白（ボタンと被らないように）
         scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 80, right: 0)
-
-        if isEditMode {
-            NSLayoutConstraint.activate([
-                deleteButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-                deleteButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-                deleteButton.bottomAnchor.constraint(equalTo: saveActionButton.topAnchor, constant: -10),
-                deleteButton.heightAnchor.constraint(equalToConstant: 50)
-            ])
-        }
     }
 
     private func setupActions() {
@@ -330,10 +310,6 @@ class AddRecordViewController: UIViewController {
         saveActionButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
         saveActionButton.addTarget(self, action: #selector(saveButtonDown), for: .touchDown)
         saveActionButton.addTarget(self, action: #selector(saveButtonUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-
-        if isEditMode {
-            deleteButton.addTarget(self, action: #selector(deleteButtonTapped), for: .touchUpInside)
-        }
 
         starRatingView.onRatingChanged = { _ in }
     }
@@ -365,23 +341,31 @@ class AddRecordViewController: UIViewController {
 
     private func makeChipButton(for type: RamenType) -> UIButton {
         let color = UIColor.colorForRamenType(type)
-        let button = UIButton(type: .custom)
-        button.setTitle(type.rawValue, for: .normal)
-        button.titleLabel?.font = UIFont.rounded(ofSize: 13, weight: .bold)
-        button.setTitleColor(color, for: .normal)
-        button.backgroundColor = color.withAlphaComponent(0.12)
+
+        var config = UIButton.Configuration.plain()
+        config.title = type.rawValue
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { _ in
+            AttributeContainer([.font: UIFont.rounded(ofSize: 13, weight: .bold)])
+        }
+        config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 14)
+        config.background.cornerRadius = 22
+
+        let button = UIButton(configuration: config)
         button.layer.cornerRadius = 22
         button.layer.borderWidth = 2
         button.layer.borderColor = UIColor.clear.cgColor
         button.translatesAutoresizingMaskIntoConstraints = false
         button.heightAnchor.constraint(equalToConstant: 44).isActive = true
-        // ラベル幅 + 左右28ptのパディング相当を確保
-        let titleWidth = (type.rawValue as NSString)
-            .size(withAttributes: [.font: UIFont.rounded(ofSize: 13, weight: .bold)]).width
-        button.widthAnchor.constraint(equalToConstant: ceil(titleWidth) + 28).isActive = true
+
+        button.configurationUpdateHandler = { btn in
+            var updated = btn.configuration ?? UIButton.Configuration.plain()
+            updated.baseForegroundColor = btn.isSelected ? .white : color
+            updated.background.backgroundColor = btn.isSelected ? color : color.withAlphaComponent(0.12)
+            btn.configuration = updated
+            btn.layer.borderColor = btn.isSelected ? color.cgColor : UIColor.clear.cgColor
+        }
 
         button.addTarget(self, action: #selector(chipTapped(_:)), for: .touchUpInside)
-        // タグでRamenTypeを特定
         if let index = RamenType.allCases.firstIndex(of: type) {
             button.tag = index
         }
@@ -391,21 +375,10 @@ class AddRecordViewController: UIViewController {
     private func selectChip(for type: RamenType) {
         for (i, button) in typeChipButtons.enumerated() {
             let chipType = RamenType.allCases[i]
-            let isSelected = chipType == type
-            let color = UIColor.colorForRamenType(chipType)
-
+            let shouldSelect = chipType == type
+            button.isSelected = shouldSelect
             UIView.animate(withDuration: 0.2) {
-                if isSelected {
-                    button.backgroundColor = color
-                    button.setTitleColor(.white, for: .normal)
-                    button.layer.borderColor = color.cgColor
-                    button.transform = CGAffineTransform(scaleX: 1.05, y: 1.05)
-                } else {
-                    button.backgroundColor = color.withAlphaComponent(0.12)
-                    button.setTitleColor(color, for: .normal)
-                    button.layer.borderColor = UIColor.clear.cgColor
-                    button.transform = .identity
-                }
+                button.transform = shouldSelect ? CGAffineTransform(scaleX: 1.05, y: 1.05) : .identity
             }
         }
     }

@@ -80,13 +80,18 @@ class RecordDetailViewController: UIViewController {
     }()
 
     // 種類タグ
+    private let typeTagContainer: UIView = {
+        let v = UIView()
+        v.layer.cornerRadius = 11
+        v.clipsToBounds = true
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
+
     private let typeTagLabel: UILabel = {
         let l = UILabel()
         l.font = .appTag
         l.textColor = .white
-        l.textAlignment = .center
-        l.layer.cornerRadius = 11
-        l.clipsToBounds = true
         l.translatesAutoresizingMaskIntoConstraints = false
         return l
     }()
@@ -174,7 +179,8 @@ class RecordDetailViewController: UIViewController {
 
         contentView.addSubview(infoView)
         infoView.addSubview(storeNameLabel)
-        infoView.addSubview(typeTagLabel)
+        infoView.addSubview(typeTagContainer)
+        typeTagContainer.addSubview(typeTagLabel)
         infoView.addSubview(starRatingContainer)
         starRatingContainer.addSubview(starRatingView)
         infoView.addSubview(infoStack)
@@ -249,13 +255,18 @@ class RecordDetailViewController: UIViewController {
             storeNameLabel.leadingAnchor.constraint(equalTo: infoView.leadingAnchor, constant: 20),
             storeNameLabel.trailingAnchor.constraint(equalTo: infoView.trailingAnchor, constant: -20),
 
-            // 種類タグ
-            typeTagLabel.topAnchor.constraint(equalTo: storeNameLabel.bottomAnchor, constant: 10),
-            typeTagLabel.leadingAnchor.constraint(equalTo: infoView.leadingAnchor, constant: 20),
-            typeTagLabel.heightAnchor.constraint(equalToConstant: 26),
+            // 種類タグ（コンテナ）
+            typeTagContainer.topAnchor.constraint(equalTo: storeNameLabel.bottomAnchor, constant: 10),
+            typeTagContainer.leadingAnchor.constraint(equalTo: infoView.leadingAnchor, constant: 20),
+
+            // 種類タグ（ラベル：コンテナ内パディング）
+            typeTagLabel.topAnchor.constraint(equalTo: typeTagContainer.topAnchor, constant: 4),
+            typeTagLabel.bottomAnchor.constraint(equalTo: typeTagContainer.bottomAnchor, constant: -4),
+            typeTagLabel.leadingAnchor.constraint(equalTo: typeTagContainer.leadingAnchor, constant: 10),
+            typeTagLabel.trailingAnchor.constraint(equalTo: typeTagContainer.trailingAnchor, constant: -10),
 
             // 星評価
-            starRatingContainer.topAnchor.constraint(equalTo: typeTagLabel.bottomAnchor, constant: 16),
+            starRatingContainer.topAnchor.constraint(equalTo: typeTagContainer.bottomAnchor, constant: 16),
             starRatingContainer.leadingAnchor.constraint(equalTo: infoView.leadingAnchor, constant: 20),
             starRatingContainer.trailingAnchor.constraint(equalTo: infoView.trailingAnchor, constant: -20),
             starRatingContainer.heightAnchor.constraint(equalToConstant: 44),
@@ -303,8 +314,8 @@ class RecordDetailViewController: UIViewController {
         storeNameLabel.text = record.storeName
 
         // 種類タグ
-        typeTagLabel.text = "  \(ramenType.rawValue)  "
-        typeTagLabel.backgroundColor = typeColor
+        typeTagLabel.text = ramenType.rawValue
+        typeTagContainer.backgroundColor = typeColor
 
         // 星評価
         if record.rating > 0 {

@@ -27,7 +27,7 @@ class RecordListViewController: UIViewController {
         layout.scrollDirection = .vertical
         layout.minimumInteritemSpacing = 12
         layout.minimumLineSpacing = 12
-        layout.sectionInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+        layout.sectionInset = UIEdgeInsets(top: 12, left: 10, bottom: 12, right: 10)
 
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.backgroundColor = .appBackground
@@ -415,12 +415,12 @@ extension RecordListViewController: UICollectionViewDelegateFlowLayout {
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         let spacing: CGFloat = 12
-        let margins: CGFloat = 16 * 2
+        let margins: CGFloat = 10 * 2
         let availableWidth = collectionView.bounds.width - margins - spacing
         let cellWidth = availableWidth / 2
 
-        // アスペクト比 1:1.3
-        let cellHeight = cellWidth * 1.3
+        // アスペクト比 1:1.0
+        let cellHeight = cellWidth * 1.0
 
         return CGSize(width: cellWidth, height: cellHeight)
     }
