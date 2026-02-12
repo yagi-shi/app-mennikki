@@ -537,8 +537,10 @@ class AddRecordViewController: UIViewController {
             photoData = existing
         }
 
+        var saveSuccess = false
+
         if isEditMode, let record = recordToEdit {
-            CoreDataManager.shared.updateRecord(
+            saveSuccess = CoreDataManager.shared.updateRecord(
                 record,
                 storeName: storeName,
                 ramenType: ramenType,
@@ -551,7 +553,7 @@ class AddRecordViewController: UIViewController {
                 prefecture: selectedPrefecture
             )
         } else {
-            CoreDataManager.shared.createRecord(
+            saveSuccess = CoreDataManager.shared.createRecord(
                 storeName: storeName,
                 ramenType: ramenType,
                 visitDate: visitDatePicker.date,
@@ -560,12 +562,17 @@ class AddRecordViewController: UIViewController {
                 comment: comment,
                 photo: photoData,
                 prefecture: selectedPrefecture
-            )
+            ) != nil
+        }
+
+        guard saveSuccess else {
+            showAlert(title: "保存エラー", message: "データの保存に失敗しました。空き容量を確認してください。")
+            return
         }
 
         showSuccessAnimation()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.dismiss(animated: true)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.dismiss(animated: true)
         }
     }
 
@@ -706,6 +713,16 @@ extension AddRecordViewController: UITextFieldDelegate {
         UIView.animate(withDuration: 0.2) {
             textField.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.2).cgColor
         }
+    }
+
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        guard textField == costTextField else { return true }
+        let current = textField.text ?? ""
+        guard let range = Range(range, in: current) else { return false }
+        let newText = current.replacingCharacters(in: range, with: string)
+        if newText.isEmpty { return true }
+        guard let value = Int(newText) else { return false }
+        return value <= 9999
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {

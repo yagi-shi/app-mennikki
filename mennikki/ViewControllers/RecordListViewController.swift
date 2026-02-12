@@ -310,13 +310,11 @@ class RecordListViewController: UIViewController {
     }
 
     @objc private func prefectureFilterButtonTapped() {
-        // 記録に存在する都道府県のみ抽出
-        let allRecords = CoreDataManager.shared.fetchAllRecords()
-        let uniquePrefectures = Array(
-            Set(allRecords.compactMap { $0.prefecture })
-        )
-        .compactMap { Prefecture(rawValue: $0) }
-        .sorted { Prefecture.allCases.firstIndex(of: $0)! < Prefecture.allCases.firstIndex(of: $1)! }
+        // 記録に存在する都道府県のみ抽出（軽量フェッチ）
+        let prefStrings = CoreDataManager.shared.fetchDistinctPrefectures()
+        let uniquePrefectures = prefStrings
+            .compactMap { Prefecture(rawValue: $0) }
+            .sorted { Prefecture.allCases.firstIndex(of: $0) ?? 0 < Prefecture.allCases.firstIndex(of: $1) ?? 0 }
 
         guard !uniquePrefectures.isEmpty else {
             let alert = UIAlertController(

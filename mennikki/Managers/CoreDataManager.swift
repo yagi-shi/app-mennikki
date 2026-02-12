@@ -20,13 +20,19 @@ class CoreDataManager {
 
     // MARK: - Core Data Stack
 
-    /// Persistent Container（AppDelegateから取得）
-    private var persistentContainer: NSPersistentContainer {
+    /// Persistent Container（AppDelegateから取得、キャッシュ）
+    private lazy var persistentContainer: NSPersistentContainer = {
         guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
-            fatalError("AppDelegate not found")
+            assertionFailure("AppDelegate not found")
+            // フォールバック: 独自コンテナを生成（テスト環境等）
+            let container = NSPersistentContainer(name: "mennikki")
+            container.loadPersistentStores { _, error in
+                if let error { print("[CoreData] Fallback store error: \(error)") }
+            }
+            return container
         }
         return appDelegate.persistentContainer
-    }
+    }()
 
     /// View Context（メインスレッド用）
     var viewContext: NSManagedObjectContext {
@@ -212,6 +218,23 @@ class CoreDataManager {
             return try viewContext.fetch(request)
         } catch {
             print("Error searching records: \(error)")
+            return []
+        }
+    }
+
+    /// 記録済みの都道府県一覧を取得（軽量フェッチ）
+    func fetchDistinctPrefectures() -> [String] {
+        let request = NSFetchRequest<NSDictionary>(entityName: "Record")
+        request.resultType = .dictionaryResultType
+        request.propertiesToFetch = ["prefecture"]
+        request.returnsDistinctResults = true
+        request.predicate = NSPredicate(format: "prefecture != nil")
+
+        do {
+            let results = try viewContext.fetch(request)
+            return results.compactMap { $0["prefecture"] as? String }
+        } catch {
+            print("[CoreData] Error fetching distinct prefectures: \(error)")
             return []
         }
     }
