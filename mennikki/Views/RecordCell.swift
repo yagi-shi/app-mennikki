@@ -214,7 +214,14 @@ class RecordCell: UICollectionViewCell {
     func configure(with record: Record) {
         storeNameLabel.text = record.storeName
 
-        let ramenType = RamenType(rawValue: record.ramenType ?? "") ?? .other
+        let rawType = record.ramenType ?? ""
+        let ramenType: RamenType
+        if let parsed = RamenType(rawValue: rawType) {
+            ramenType = parsed
+        } else {
+            print("[RecordCell] 不明なラーメン種類: \"\(rawType)\" → .other にフォールバック")
+            ramenType = .other
+        }
         let typeColor = UIColor.colorForRamenType(ramenType)
 
         // 種類タグ

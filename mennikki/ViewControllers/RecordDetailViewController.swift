@@ -298,7 +298,14 @@ class RecordDetailViewController: UIViewController {
     // MARK: - Configuration
 
     private func configureWithRecord() {
-        let ramenType = RamenType(rawValue: record.ramenType ?? "") ?? .other
+        let rawType = record.ramenType ?? ""
+        let ramenType: RamenType
+        if let parsed = RamenType(rawValue: rawType) {
+            ramenType = parsed
+        } else {
+            print("[RecordDetail] 不明なラーメン種類: \"\(rawType)\" → .other にフォールバック")
+            ramenType = .other
+        }
         let typeColor = UIColor.colorForRamenType(ramenType)
 
         // ヘッダー写真 or カラー背景

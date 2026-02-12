@@ -17,9 +17,12 @@ extension UIView {
         layer.masksToBounds = false
     }
 
-    /// グラデーションレイヤーを追加
+    /// グラデーションレイヤーを追加（既存のグラデーションは除去してから追加）
     @discardableResult
     func applyGradient(colors: [UIColor], startPoint: CGPoint = CGPoint(x: 0, y: 0), endPoint: CGPoint = CGPoint(x: 1, y: 1), cornerRadius: CGFloat = 0) -> CAGradientLayer {
+        // 既存のグラデーションレイヤーを除去（蓄積防止）
+        layer.sublayers?.removeAll(where: { $0 is CAGradientLayer })
+
         let gradient = CAGradientLayer()
         gradient.colors = colors.map { $0.cgColor }
         gradient.startPoint = startPoint

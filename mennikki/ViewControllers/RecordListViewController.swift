@@ -233,7 +233,19 @@ class RecordListViewController: UIViewController {
 
     private func refreshFetchedResultsController() {
         animatedCells.removeAll()
-        setupFetchedResultsController()
+
+        // 既存の FRC がある場合は predicate を更新して再フェッチ（FRC 再作成を回避）
+        if let frc = fetchedResultsController {
+            updateSearchPredicate(for: frc.fetchRequest)
+            do {
+                try frc.performFetch()
+            } catch {
+                print("Error re-fetching records: \(error)")
+            }
+        } else {
+            setupFetchedResultsController()
+        }
+
         collectionView.reloadData()
         updateEmptyState()
     }
@@ -304,9 +316,9 @@ class RecordListViewController: UIViewController {
         let cancelAction = UIAlertAction(title: "完了", style: .cancel)
         alert.addAction(cancelAction)
 
-        // iPadでのクラッシュ対策
+        // iPadでのクラッシュ対策（種類フィルターボタン = rightBarButtonItems[0]）
         if let popoverController = alert.popoverPresentationController {
-            popoverController.barButtonItem = navigationItem.rightBarButtonItems?.last
+            popoverController.barButtonItem = navigationItem.rightBarButtonItems?.first
         }
 
         present(alert, animated: true)
