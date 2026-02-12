@@ -14,8 +14,9 @@ class RecordDetailViewController: UIViewController {
 
     // MARK: - Properties
 
-    private let record: Record
-    private var favoriteButton: UIBarButtonItem!
+    private let recordID: NSManagedObjectID
+    private var record: Record!
+    private var favoriteButton: UIButton!
 
     // MARK: - UI: スクロール全体
 
@@ -149,7 +150,7 @@ class RecordDetailViewController: UIViewController {
     // MARK: - Init
 
     init(record: Record) {
-        self.record = record
+        self.recordID = record.objectID
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -159,6 +160,7 @@ class RecordDetailViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        record = CoreDataManager.shared.viewContext.object(with: recordID) as? Record
         setupUI()
         setupConstraints()
         setupNavigationBar()
@@ -194,13 +196,14 @@ class RecordDetailViewController: UIViewController {
 
         let isFav = record.isFavorite
         let heartName = isFav ? "heart.fill" : "heart"
-        favoriteButton = UIBarButtonItem(
-            image: UIImage(systemName: heartName),
-            style: .plain,
-            target: self,
-            action: #selector(favoriteButtonTapped)
-        )
+        let heartConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
+
+        favoriteButton = UIButton(type: .system)
+        favoriteButton.setImage(UIImage(systemName: heartName, withConfiguration: heartConfig), for: .normal)
         favoriteButton.tintColor = isFav ? .appPrimary : UIColor(red: 175/255, green: 175/255, blue: 175/255, alpha: 1)
+        favoriteButton.addTarget(self, action: #selector(favoriteButtonTapped), for: .touchUpInside)
+        favoriteButton.accessibilityLabel = isFav ? "お気に入り解除" : "お気に入り登録"
+        let favoriteBarButton = UIBarButtonItem(customView: favoriteButton)
 
         let editButton = UIBarButtonItem(
             image: UIImage(systemName: "pencil"),
@@ -210,7 +213,7 @@ class RecordDetailViewController: UIViewController {
         )
         editButton.tintColor = UIColor(red: 175/255, green: 175/255, blue: 175/255, alpha: 1)
 
-        navigationItem.rightBarButtonItems = [editButton, favoriteButton]
+        navigationItem.rightBarButtonItems = [editButton, favoriteBarButton]
     }
 
     private func setupConstraints() {
@@ -400,6 +403,10 @@ class RecordDetailViewController: UIViewController {
         valueLabel.textColor = .appText
         valueLabel.translatesAutoresizingMaskIntoConstraints = false
 
+        // アクセシビリティ
+        container.isAccessibilityElement = true
+        container.accessibilityLabel = "\(title)、\(value)"
+
         container.addSubview(iconIV)
         container.addSubview(titleLabel)
         container.addSubview(valueLabel)
@@ -428,12 +435,11 @@ class RecordDetailViewController: UIViewController {
     @objc private func favoriteButtonTapped() {
         CoreDataManager.shared.toggleFavorite(record)
         let isFav = record.isFavorite
-        favoriteButton.image = UIImage(systemName: isFav ? "heart.fill" : "heart")
+        let heartConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
+        favoriteButton.setImage(UIImage(systemName: isFav ? "heart.fill" : "heart", withConfiguration: heartConfig), for: .normal)
         favoriteButton.tintColor = isFav ? .appPrimary : UIColor(red: 175/255, green: 175/255, blue: 175/255, alpha: 1)
-
-        if let buttonView = favoriteButton.value(forKey: "view") as? UIView {
-            buttonView.bounceAnimation(scale: 1.4, duration: 0.12)
-        }
+        favoriteButton.accessibilityLabel = isFav ? "お気に入り解除" : "お気に入り登録"
+        favoriteButton.bounceAnimation(scale: 1.4, duration: 0.12)
     }
 
     @objc private func editButtonTapped() {

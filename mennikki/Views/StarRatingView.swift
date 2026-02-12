@@ -66,6 +66,7 @@ class StarRatingView: UIView {
         button.setImage(UIImage(systemName: "star", withConfiguration: config), for: .normal)
         button.tintColor = .appBorder
         button.tag = index + 1
+        button.accessibilityLabel = "\(index + 1)星"
         button.addTarget(self, action: #selector(starTapped(_:)), for: .touchUpInside)
         return button
     }
@@ -94,6 +95,11 @@ class StarRatingView: UIView {
             let imageName = isFilled ? "star.fill" : "star"
             button.setImage(UIImage(systemName: imageName, withConfiguration: config), for: .normal)
             button.tintColor = isFilled ? .appSuccess : .appBorder
+            if isFilled {
+                button.accessibilityTraits.insert(.selected)
+            } else {
+                button.accessibilityTraits.remove(.selected)
+            }
         }
     }
 

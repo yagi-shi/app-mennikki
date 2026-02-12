@@ -13,11 +13,12 @@ class RecordListViewController: UIViewController {
 
     // MARK: - Properties
 
-    private var fetchedResultsController: NSFetchedResultsController<Record>!
+    private var fetchedResultsController: NSFetchedResultsController<Record>?
     private var searchController: UISearchController!
     private var selectedRamenTypes: [RamenType] = []
     private var selectedPrefecture: Prefecture?
     private var searchText: String = ""
+    private var searchDebounceTimer: Timer?
     private var animatedCells = Set<IndexPath>()
 
     // MARK: - UI Components
@@ -120,6 +121,8 @@ class RecordListViewController: UIViewController {
         fabButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
         fabButton.addTarget(self, action: #selector(fabTouchDown), for: .touchDown)
         fabButton.addTarget(self, action: #selector(fabTouchUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        fabButton.accessibilityLabel = "新しい記録を追加"
+        fabButton.accessibilityTraits = .button
         collectionView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 88, right: 0)
     }
 
@@ -192,10 +195,10 @@ class RecordListViewController: UIViewController {
             cacheName: nil
         )
 
-        fetchedResultsController.delegate = self
+        fetchedResultsController?.delegate = self
 
         do {
-            try fetchedResultsController.performFetch()
+            try fetchedResultsController?.performFetch()
         } catch {
             print("Error fetching records: \(error)")
         }
@@ -238,7 +241,7 @@ class RecordListViewController: UIViewController {
     // MARK: - Helper Methods
 
     private func updateEmptyState() {
-        let isEmpty = fetchedResultsController.fetchedObjects?.isEmpty ?? true
+        let isEmpty = fetchedResultsController?.fetchedObjects?.isEmpty ?? true
         emptyStateStackView.isHidden = !isEmpty
         collectionView.isHidden = isEmpty
     }
@@ -370,7 +373,7 @@ class RecordListViewController: UIViewController {
 extension RecordListViewController: UICollectionViewDataSource {
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return fetchedResultsController.fetchedObjects?.count ?? 0
+        return fetchedResultsController?.fetchedObjects?.count ?? 0
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -381,8 +384,9 @@ extension RecordListViewController: UICollectionViewDataSource {
             return UICollectionViewCell()
         }
 
-        let record = fetchedResultsController.object(at: indexPath)
-        cell.configure(with: record)
+        if let record = fetchedResultsController?.object(at: indexPath) {
+            cell.configure(with: record)
+        }
 
         return cell
     }
@@ -400,8 +404,7 @@ extension RecordListViewController: UICollectionViewDelegate {
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        // 詳細画面へ遷移
-        let record = fetchedResultsController.object(at: indexPath)
+        guard let record = fetchedResultsController?.object(at: indexPath) else { return }
         let detailVC = RecordDetailViewController(record: record)
         navigationController?.pushViewController(detailVC, animated: true)
     }
@@ -441,6 +444,9 @@ extension RecordListViewController: UISearchResultsUpdating {
 
     func updateSearchResults(for searchController: UISearchController) {
         searchText = searchController.searchBar.text ?? ""
-        refreshFetchedResultsController()
+        searchDebounceTimer?.invalidate()
+        searchDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
+            self?.refreshFetchedResultsController()
+        }
     }
 }

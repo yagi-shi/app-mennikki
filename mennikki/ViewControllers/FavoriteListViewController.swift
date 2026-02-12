@@ -13,7 +13,7 @@ class FavoriteListViewController: UIViewController {
 
     // MARK: - Properties
 
-    private var fetchedResultsController: NSFetchedResultsController<Record>!
+    private var fetchedResultsController: NSFetchedResultsController<Record>?
     private var animatedCells = Set<IndexPath>()
 
     // MARK: - UI Components
@@ -94,7 +94,7 @@ class FavoriteListViewController: UIViewController {
 
         // お気に入りの変更を反映するため、表示時にデータを再取得
         animatedCells.removeAll()
-        try? fetchedResultsController.performFetch()
+        try? fetchedResultsController?.performFetch()
         collectionView.reloadData()
         updateEmptyState()
     }
@@ -143,10 +143,10 @@ class FavoriteListViewController: UIViewController {
             cacheName: nil
         )
 
-        fetchedResultsController.delegate = self
+        fetchedResultsController?.delegate = self
 
         do {
-            try fetchedResultsController.performFetch()
+            try fetchedResultsController?.performFetch()
         } catch {
             print("Error fetching favorite records: \(error)")
         }
@@ -155,7 +155,7 @@ class FavoriteListViewController: UIViewController {
     // MARK: - Helper Methods
 
     private func updateEmptyState() {
-        let isEmpty = fetchedResultsController.fetchedObjects?.isEmpty ?? true
+        let isEmpty = fetchedResultsController?.fetchedObjects?.isEmpty ?? true
         emptyStateStackView.isHidden = !isEmpty
         collectionView.isHidden = isEmpty
     }
@@ -166,7 +166,7 @@ class FavoriteListViewController: UIViewController {
 extension FavoriteListViewController: UICollectionViewDataSource {
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return fetchedResultsController.fetchedObjects?.count ?? 0
+        return fetchedResultsController?.fetchedObjects?.count ?? 0
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -177,8 +177,9 @@ extension FavoriteListViewController: UICollectionViewDataSource {
             return UICollectionViewCell()
         }
 
-        let record = fetchedResultsController.object(at: indexPath)
-        cell.configure(with: record)
+        if let record = fetchedResultsController?.object(at: indexPath) {
+            cell.configure(with: record)
+        }
 
         return cell
     }
@@ -196,7 +197,7 @@ extension FavoriteListViewController: UICollectionViewDelegate {
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let record = fetchedResultsController.object(at: indexPath)
+        guard let record = fetchedResultsController?.object(at: indexPath) else { return }
         let detailVC = RecordDetailViewController(record: record)
         navigationController?.pushViewController(detailVC, animated: true)
     }

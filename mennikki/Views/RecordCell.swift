@@ -4,6 +4,7 @@
 //
 
 import UIKit
+import ImageIO
 
 /// Duolingo風ラーメン記録カード
 /// - 上半分: ラーメン種類カラーの背景（写真がある場合は写真）
@@ -236,7 +237,7 @@ class RecordCell: UICollectionViewCell {
         favoriteIcon.isHidden = !record.isFavorite
 
         // 写真 or カラープレースホルダー
-        if let data = record.photo, let image = UIImage(data: data) {
+        if let data = record.photo, let image = Self.downsampledImage(data: data, maxPixelSize: 300) {
             photoImageView.image = image
             photoImageView.isHidden = false
             placeholderIcon.isHidden = true
@@ -265,6 +266,24 @@ class RecordCell: UICollectionViewCell {
         isAccessibilityElement = true
         accessibilityLabel = "\(record.storeName ?? "")、\(ramenType.rawValue)"
         accessibilityHint = "ダブルタップして詳細を表示"
+    }
+
+    // MARK: - Image Downsampling
+
+    /// CGImageSource を使ってサムネイルサイズにダウンサンプリング（メモリ節約）
+    private static func downsampledImage(data: Data, maxPixelSize: CGFloat) -> UIImage? {
+        let options: [CFString: Any] = [kCGImageSourceShouldCache: false]
+        guard let source = CGImageSourceCreateWithData(data as CFData, options as CFDictionary) else { return nil }
+        let downsampleOptions: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize * UIScreen.main.scale,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true
+        ]
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, downsampleOptions as CFDictionary) else {
+            return UIImage(data: data)
+        }
+        return UIImage(cgImage: cgImage)
     }
 
     // MARK: - Duolingo 押し込みアニメーション

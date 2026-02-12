@@ -204,6 +204,10 @@ class AddRecordViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
@@ -242,6 +246,13 @@ class AddRecordViewController: UIViewController {
 
         storeNameTextField.delegate = self
         costTextField.delegate = self
+
+        // アクセシビリティ
+        storeNameTextField.accessibilityLabel = "店舗名"
+        costTextField.accessibilityLabel = "費用"
+        commentTextView.accessibilityLabel = "コメント"
+        photoButton.accessibilityLabel = "写真を選択"
+        saveActionButton.accessibilityLabel = "保存"
     }
 
     private func setupNavigationBar() {
@@ -318,6 +329,27 @@ class AddRecordViewController: UIViewController {
         let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tap.cancelsTouchesInView = false
         view.addGestureRecognizer(tap)
+
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(keyboardWillShow(_:)),
+            name: UIResponder.keyboardWillShowNotification, object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(keyboardWillHide(_:)),
+            name: UIResponder.keyboardWillHideNotification, object: nil
+        )
+    }
+
+    @objc private func keyboardWillShow(_ notification: Notification) {
+        guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        let bottomInset = frame.height - view.safeAreaInsets.bottom + 80 // 80 = 保存ボタン分
+        scrollView.contentInset.bottom = bottomInset
+        scrollView.verticalScrollIndicatorInsets.bottom = bottomInset
+    }
+
+    @objc private func keyboardWillHide(_ notification: Notification) {
+        scrollView.contentInset.bottom = 80
+        scrollView.verticalScrollIndicatorInsets.bottom = 0
     }
 
     // MARK: - Ramen Type Chips
@@ -365,6 +397,7 @@ class AddRecordViewController: UIViewController {
             btn.layer.borderColor = btn.isSelected ? color.cgColor : UIColor.clear.cgColor
         }
 
+        button.accessibilityLabel = type.rawValue
         button.addTarget(self, action: #selector(chipTapped(_:)), for: .touchUpInside)
         if let index = RamenType.allCases.firstIndex(of: type) {
             button.tag = index
@@ -377,6 +410,11 @@ class AddRecordViewController: UIViewController {
             let chipType = RamenType.allCases[i]
             let shouldSelect = chipType == type
             button.isSelected = shouldSelect
+            if shouldSelect {
+                button.accessibilityTraits.insert(.selected)
+            } else {
+                button.accessibilityTraits.remove(.selected)
+            }
             UIView.animate(withDuration: 0.2) {
                 button.transform = shouldSelect ? CGAffineTransform(scaleX: 1.05, y: 1.05) : .identity
             }
@@ -598,8 +636,14 @@ class AddRecordViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel))
         alert.addAction(UIAlertAction(title: "削除", style: .destructive) { [weak self] _ in
             guard let self, let record = self.recordToEdit else { return }
-            // dismiss 後に詳細画面も pop して一覧へ戻るため、事前に参照を取得
-            let hostNav = self.presentingViewController?.navigationController
+            // presentingViewController が UINavigationController の場合、その中の VC の navigationController を辿る
+            let presenting = self.presentingViewController
+            let hostNav: UINavigationController?
+            if let nav = presenting as? UINavigationController {
+                hostNav = nav
+            } else {
+                hostNav = presenting?.navigationController
+            }
             CoreDataManager.shared.deleteRecord(record)
             UIView.animate(withDuration: 0.3, animations: {
                 self.view.alpha = 0
@@ -704,15 +748,11 @@ class AddRecordViewController: UIViewController {
 extension AddRecordViewController: UITextFieldDelegate {
 
     func textFieldDidBeginEditing(_ textField: UITextField) {
-        UIView.animate(withDuration: 0.2) {
-            textField.layer.borderColor = UIColor.appSecondary.cgColor
-        }
+        textField.layer.borderColor = UIColor.appSecondary.cgColor
     }
 
     func textFieldDidEndEditing(_ textField: UITextField) {
-        UIView.animate(withDuration: 0.2) {
-            textField.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.2).cgColor
-        }
+        textField.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.2).cgColor
     }
 
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {

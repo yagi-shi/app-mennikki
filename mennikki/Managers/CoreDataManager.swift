@@ -36,6 +36,7 @@ class CoreDataManager {
 
     /// View Context（メインスレッド用）
     var viewContext: NSManagedObjectContext {
+        assert(Thread.isMainThread, "viewContext はメインスレッドからのみアクセスしてください")
         return persistentContainer.viewContext
     }
 
