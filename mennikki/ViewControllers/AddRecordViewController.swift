@@ -266,16 +266,6 @@ class AddRecordViewController: UIViewController {
             action: #selector(cancelTapped)
         )
 
-        if isEditMode {
-            let trashButton = UIBarButtonItem(
-                image: UIImage(systemName: "trash"),
-                style: .plain,
-                target: self,
-                action: #selector(deleteButtonTapped)
-            )
-            trashButton.tintColor = .appPrimary
-            navigationItem.rightBarButtonItem = trashButton
-        }
     }
 
     private func setupConstraints() {
@@ -627,34 +617,6 @@ class AddRecordViewController: UIViewController {
         view.endEditing(true)
     }
 
-    @objc private func deleteButtonTapped() {
-        let alert = UIAlertController(
-            title: "記録を削除しますか？",
-            message: "この操作は取り消せません",
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel))
-        alert.addAction(UIAlertAction(title: "削除", style: .destructive) { [weak self] _ in
-            guard let self, let record = self.recordToEdit else { return }
-            // presentingViewController が UINavigationController の場合、その中の VC の navigationController を辿る
-            let presenting = self.presentingViewController
-            let hostNav: UINavigationController?
-            if let nav = presenting as? UINavigationController {
-                hostNav = nav
-            } else {
-                hostNav = presenting?.navigationController
-            }
-            CoreDataManager.shared.deleteRecord(record)
-            UIView.animate(withDuration: 0.3, animations: {
-                self.view.alpha = 0
-            }) { _ in
-                self.dismiss(animated: false) {
-                    hostNav?.popViewController(animated: true)
-                }
-            }
-        })
-        present(alert, animated: true)
-    }
 
     // MARK: - Helper Methods
 

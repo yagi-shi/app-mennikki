@@ -213,7 +213,16 @@ class RecordDetailViewController: UIViewController {
         )
         editButton.tintColor = UIColor(red: 175/255, green: 175/255, blue: 175/255, alpha: 1)
 
-        navigationItem.rightBarButtonItems = [editButton, favoriteBarButton]
+        let deleteButton = UIBarButtonItem(
+            image: UIImage(systemName: "trash"),
+            style: .plain,
+            target: self,
+            action: #selector(deleteButtonTapped)
+        )
+        deleteButton.tintColor = .appPrimary
+        deleteButton.accessibilityLabel = "記録を削除"
+
+        navigationItem.rightBarButtonItems = [editButton, favoriteBarButton, deleteButton]
     }
 
     private func setupConstraints() {
@@ -455,5 +464,20 @@ class RecordDetailViewController: UIViewController {
         nav.navigationBar.applyAppStyle()
         nav.modalPresentationStyle = .fullScreen
         present(nav, animated: true)
+    }
+
+    @objc private func deleteButtonTapped() {
+        let alert = UIAlertController(
+            title: "記録を削除しますか？",
+            message: "この操作は取り消せません",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel))
+        alert.addAction(UIAlertAction(title: "削除", style: .destructive) { [weak self] _ in
+            guard let self else { return }
+            CoreDataManager.shared.deleteRecord(self.record)
+            self.navigationController?.popViewController(animated: true)
+        })
+        present(alert, animated: true)
     }
 }
