@@ -5,6 +5,10 @@
 
 import UIKit
 import ImageIO
+import CoreData
+import os
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.mennikki", category: "RecordCell")
 
 /// Duolingo風ラーメン記録カード
 /// - 上半分: ラーメン種類カラーの背景（写真がある場合は写真）
@@ -13,6 +17,14 @@ import ImageIO
 class RecordCell: UICollectionViewCell {
 
     static let reuseIdentifier = "RecordCell"
+
+    // MARK: - Image Cache
+
+    /// ダウンサンプリング済み画像のキャッシュ（全セルで共有）
+    private static let imageCache = NSCache<NSString, UIImage>()
+
+    /// 現在表示中のレコード ID（セル再利用時の画像すり替え防止用）
+    private var currentRecordID: String?
 
     // MARK: - UI: 上エリア（カラー or 写真）
 
@@ -56,7 +68,7 @@ class RecordCell: UICollectionViewCell {
         let cfg = UIImage.SymbolConfiguration(pointSize: 10, weight: .bold)
         iv.image = UIImage(systemName: "heart.fill", withConfiguration: cfg)
         iv.tintColor = .white
-        iv.backgroundColor = UIColor(red: 255/255, green: 75/255, blue: 75/255, alpha: 1)
+        iv.backgroundColor = .appPrimary
         iv.layer.cornerRadius = 12
         iv.contentMode = .center
         iv.isHidden = true
@@ -127,7 +139,7 @@ class RecordCell: UICollectionViewCell {
         layer.shadowOffset = CGSize(width: 0, height: 5)
         // カードのハードボーダー（Duolingo風の立体感）
         contentView.layer.borderWidth = 2
-        contentView.layer.borderColor = UIColor(red: 235/255, green: 235/255, blue: 235/255, alpha: 1).cgColor
+        contentView.layer.borderColor = UIColor.appCardBorder.cgColor
 
         // 5個の星アイコンを追加
         for _ in 0..<5 {
@@ -212,6 +224,9 @@ class RecordCell: UICollectionViewCell {
     // MARK: - Configure
 
     func configure(with record: Record) {
+        let recordID = record.objectID.uriRepresentation().absoluteString
+        currentRecordID = recordID
+
         storeNameLabel.text = record.storeName
 
         let rawType = record.ramenType ?? ""
@@ -219,7 +234,7 @@ class RecordCell: UICollectionViewCell {
         if let parsed = RamenType(rawValue: rawType) {
             ramenType = parsed
         } else {
-            print("[RecordCell] 不明なラーメン種類: \"\(rawType)\" → .other にフォールバック")
+            logger.warning("不明なラーメン種類: \"\(rawType, privacy: .public)\" → .other にフォールバック")
             ramenType = .other
         }
         let typeColor = UIColor.colorForRamenType(ramenType)
@@ -244,29 +259,32 @@ class RecordCell: UICollectionViewCell {
         favoriteIcon.isHidden = !record.isFavorite
 
         // 写真 or カラープレースホルダー
-        if let data = record.photo, let image = Self.downsampledImage(data: data, maxPixelSize: 300) {
-            photoImageView.image = image
-            photoImageView.isHidden = false
-            placeholderIcon.isHidden = true
-            topArea.backgroundColor = .black
-            // 写真下部に薄いグラデーション（白背景への自然な遷移）
-            topGradientLayer.colors = [
-                UIColor.clear.cgColor,
-                UIColor.black.withAlphaComponent(0.18).cgColor
-            ]
-            topGradientLayer.startPoint = CGPoint(x: 0.5, y: 0.4)
-            topGradientLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
+        if record.photo != nil {
+            // まずプレースホルダー状態にしておく
+            showColorPlaceholder(typeColor)
+
+            let cacheKey = recordID as NSString
+            // キャッシュにあれば即表示
+            if let cached = Self.imageCache.object(forKey: cacheKey) {
+                showPhoto(cached)
+            } else {
+                // バックグラウンドでダウンサンプリング
+                let displayScale = traitCollection.displayScale > 0 ? traitCollection.displayScale : 2.0
+                let photoData = record.photo
+                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                    guard let data = photoData,
+                          let image = Self.downsampledImage(data: data, maxPixelSize: 300, scale: displayScale) else { return }
+                    // キャッシュに保存
+                    Self.imageCache.setObject(image, forKey: cacheKey)
+                    DispatchQueue.main.async {
+                        // セルが再利用されていないか確認
+                        guard self?.currentRecordID == recordID else { return }
+                        self?.showPhoto(image)
+                    }
+                }
+            }
         } else {
-            photoImageView.isHidden = true
-            placeholderIcon.isHidden = false
-            topArea.backgroundColor = typeColor
-            // カラー背景に左上ハイライト（立体感）
-            topGradientLayer.colors = [
-                UIColor.white.withAlphaComponent(0.35).cgColor,
-                UIColor.clear.cgColor
-            ]
-            topGradientLayer.startPoint = CGPoint(x: 0, y: 0)
-            topGradientLayer.endPoint = CGPoint(x: 1, y: 1)
+            showColorPlaceholder(typeColor)
         }
 
         // アクセシビリティ
@@ -275,15 +293,40 @@ class RecordCell: UICollectionViewCell {
         accessibilityHint = "ダブルタップして詳細を表示"
     }
 
+    private func showPhoto(_ image: UIImage) {
+        photoImageView.image = image
+        photoImageView.isHidden = false
+        placeholderIcon.isHidden = true
+        topArea.backgroundColor = .black
+        topGradientLayer.colors = [
+            UIColor.clear.cgColor,
+            UIColor.black.withAlphaComponent(0.18).cgColor
+        ]
+        topGradientLayer.startPoint = CGPoint(x: 0.5, y: 0.4)
+        topGradientLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
+    }
+
+    private func showColorPlaceholder(_ color: UIColor) {
+        photoImageView.isHidden = true
+        placeholderIcon.isHidden = false
+        topArea.backgroundColor = color
+        topGradientLayer.colors = [
+            UIColor.white.withAlphaComponent(0.35).cgColor,
+            UIColor.clear.cgColor
+        ]
+        topGradientLayer.startPoint = CGPoint(x: 0, y: 0)
+        topGradientLayer.endPoint = CGPoint(x: 1, y: 1)
+    }
+
     // MARK: - Image Downsampling
 
     /// CGImageSource を使ってサムネイルサイズにダウンサンプリング（メモリ節約）
-    private static func downsampledImage(data: Data, maxPixelSize: CGFloat) -> UIImage? {
+    private static func downsampledImage(data: Data, maxPixelSize: CGFloat, scale: CGFloat) -> UIImage? {
         let options: [CFString: Any] = [kCGImageSourceShouldCache: false]
         guard let source = CGImageSourceCreateWithData(data as CFData, options as CFDictionary) else { return nil }
         let downsampleOptions: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize * UIScreen.main.scale,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize * scale,
             kCGImageSourceCreateThumbnailWithTransform: true,
             kCGImageSourceShouldCacheImmediately: true
         ]
@@ -313,6 +356,7 @@ class RecordCell: UICollectionViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        currentRecordID = nil
         storeNameLabel.text = nil
         typeTagLabel.text = nil
         typeTagContainer.backgroundColor = .clear

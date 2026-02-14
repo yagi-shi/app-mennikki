@@ -49,7 +49,7 @@ class AddRecordViewController: UIViewController {
         tf.backgroundColor = .white
         tf.layer.cornerRadius = 12
         tf.layer.borderWidth = 2
-        tf.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.2).cgColor
+        tf.layer.borderColor = UIColor.appFieldBorder.cgColor
         tf.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
         tf.leftViewMode = .always
         tf.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
@@ -98,7 +98,7 @@ class AddRecordViewController: UIViewController {
         tf.backgroundColor = .white
         tf.layer.cornerRadius = 12
         tf.layer.borderWidth = 2
-        tf.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.2).cgColor
+        tf.layer.borderColor = UIColor.appFieldBorder.cgColor
         tf.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
         tf.leftViewMode = .always
         tf.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
@@ -124,7 +124,7 @@ class AddRecordViewController: UIViewController {
         button.contentHorizontalAlignment = .leading
         button.layer.cornerRadius = 12
         button.layer.borderWidth = 2
-        button.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.2).cgColor
+        button.layer.borderColor = UIColor.appFieldBorder.cgColor
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -144,7 +144,7 @@ class AddRecordViewController: UIViewController {
         tv.backgroundColor = .white
         tv.layer.cornerRadius = 12
         tv.layer.borderWidth = 2
-        tv.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.2).cgColor
+        tv.layer.borderColor = UIColor.appFieldBorder.cgColor
         tv.textContainerInset = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
         tv.translatesAutoresizingMaskIntoConstraints = false
         return tv
@@ -155,11 +155,11 @@ class AddRecordViewController: UIViewController {
         let button = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 40, weight: .regular)
         button.setImage(UIImage(systemName: "camera.fill", withConfiguration: config), for: .normal)
-        button.tintColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 1)
+        button.tintColor = UIColor.appFieldBorder.withAlphaComponent(1.0)
         button.backgroundColor = .white
         button.layer.cornerRadius = 12
         button.layer.borderWidth = 2
-        button.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.3).cgColor
+        button.layer.borderColor = UIColor.appFieldBorder.withAlphaComponent(0.3).cgColor
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -169,7 +169,7 @@ class AddRecordViewController: UIViewController {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.layer.cornerRadius = 12
-        iv.backgroundColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.1)
+        iv.backgroundColor = UIColor.appFieldBorder.withAlphaComponent(0.1)
         iv.isHidden = true
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
@@ -204,10 +204,6 @@ class AddRecordViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
-
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
@@ -228,7 +224,7 @@ class AddRecordViewController: UIViewController {
     // MARK: - Setup
 
     private func setupUI() {
-        view.backgroundColor = UIColor(red: 247/255, green: 247/255, blue: 247/255, alpha: 1)
+        view.backgroundColor = .appBackground
 
         view.addSubview(scrollView)
         scrollView.addSubview(contentStackView)
@@ -536,9 +532,16 @@ class AddRecordViewController: UIViewController {
     }
 
     @objc private func saveTapped() {
-        guard let storeName = storeNameTextField.text, !storeName.isEmpty else {
+        guard let storeName = storeNameTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !storeName.isEmpty else {
             shakeView(storeNameTextField)
             showAlert(title: "エラー", message: "店舗名を入力してください")
+            return
+        }
+
+        guard storeName.count <= 100 else {
+            shakeView(storeNameTextField)
+            showAlert(title: "エラー", message: "店舗名は100文字以内で入力してください")
             return
         }
 
@@ -553,9 +556,16 @@ class AddRecordViewController: UIViewController {
             return
         }
 
+        let commentText = commentTextView.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if commentText.count > 500 {
+            shakeView(commentTextView)
+            showAlert(title: "エラー", message: "コメントは500文字以内で入力してください")
+            return
+        }
+
         let cost = Int16(costTextField.text ?? "0") ?? 0
         let rating = Int16(starRatingView.rating)
-        let comment = commentTextView.text.isEmpty ? nil : commentTextView.text
+        let comment = commentText.isEmpty ? nil : commentText
 
         var photoData: Data?
         if let image = selectedImage {
@@ -696,11 +706,16 @@ class AddRecordViewController: UIViewController {
             updatePrefectureButton(pref)
         }
 
-        if let photoData = record.photo, let image = UIImage(data: photoData) {
-            selectedImage = image
-            photoImageView.image = image
-            photoImageView.isHidden = false
-            photoButton.isHidden = true
+        if let photoData = record.photo {
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let image = UIImage(data: photoData) else { return }
+                DispatchQueue.main.async {
+                    self?.selectedImage = image
+                    self?.photoImageView.image = image
+                    self?.photoImageView.isHidden = false
+                    self?.photoButton.isHidden = true
+                }
+            }
         }
     }
 }
@@ -714,7 +729,7 @@ extension AddRecordViewController: UITextFieldDelegate {
     }
 
     func textFieldDidEndEditing(_ textField: UITextField) {
-        textField.layer.borderColor = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.2).cgColor
+        textField.layer.borderColor = UIColor.appFieldBorder.cgColor
     }
 
     func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {

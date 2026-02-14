@@ -5,6 +5,9 @@
 
 import UIKit
 import CoreData
+import os
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.mennikki", category: "RecordDetail")
 
 /// 記録詳細画面（Duolingo風クリーンレイアウト）
 /// - 通常の白いナビバー（透明overlay廃止）
@@ -14,9 +17,23 @@ class RecordDetailViewController: UIViewController {
 
     // MARK: - Properties
 
+    private static let visitDateFormatter: DateFormatter = {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy年M月d日（E）"
+        fmt.locale = Locale(identifier: "ja_JP")
+        return fmt
+    }()
+
     private let recordID: NSManagedObjectID
-    private var record: Record!
-    private var favoriteButton: UIButton!
+    private var record: Record?
+    private lazy var favoriteButton: UIButton = {
+        let button = UIButton(type: .system)
+        let heartConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
+        button.setImage(UIImage(systemName: "heart", withConfiguration: heartConfig), for: .normal)
+        button.tintColor = .appSecondaryText
+        button.addTarget(self, action: #selector(favoriteButtonTapped), for: .touchUpInside)
+        return button
+    }()
 
     // MARK: - UI: スクロール全体
 
@@ -114,7 +131,7 @@ class RecordDetailViewController: UIViewController {
     // Duolingo風区切り線
     private func makeDivider() -> UIView {
         let v = UIView()
-        v.backgroundColor = UIColor(red: 229/255, green: 229/255, blue: 229/255, alpha: 1)
+        v.backgroundColor = .appBorder
         v.translatesAutoresizingMaskIntoConstraints = false
         v.heightAnchor.constraint(equalToConstant: 1).isActive = true
         return v
@@ -132,7 +149,7 @@ class RecordDetailViewController: UIViewController {
     // コメントエリア
     private let commentContainer: UIView = {
         let v = UIView()
-        v.backgroundColor = UIColor(red: 247/255, green: 247/255, blue: 247/255, alpha: 1)
+        v.backgroundColor = .appBackground
         v.layer.cornerRadius = 16
         v.translatesAutoresizingMaskIntoConstraints = false
         return v
@@ -160,11 +177,29 @@ class RecordDetailViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        record = CoreDataManager.shared.viewContext.object(with: recordID) as? Record
+        guard let fetched = CoreDataManager.shared.viewContext?.object(with: recordID) as? Record else {
+            navigationController?.popViewController(animated: true)
+            return
+        }
+        record = fetched
         setupUI()
         setupConstraints()
         setupNavigationBar()
         configureWithRecord()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // 編集・削除後の再表示に対応
+        guard let refreshed = try? CoreDataManager.shared.viewContext?.existingObject(with: recordID) as? Record else {
+            navigationController?.popViewController(animated: true)
+            return
+        }
+        record = refreshed
+        // infoStack の既存行をクリアしてから再描画
+        infoStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        configureWithRecord()
+        updateFavoriteButton()
     }
 
     // MARK: - Setup
@@ -194,15 +229,6 @@ class RecordDetailViewController: UIViewController {
         navigationItem.title = ""
         navigationItem.largeTitleDisplayMode = .never
 
-        let isFav = record.isFavorite
-        let heartName = isFav ? "heart.fill" : "heart"
-        let heartConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
-
-        favoriteButton = UIButton(type: .system)
-        favoriteButton.setImage(UIImage(systemName: heartName, withConfiguration: heartConfig), for: .normal)
-        favoriteButton.tintColor = isFav ? .appPrimary : UIColor(red: 175/255, green: 175/255, blue: 175/255, alpha: 1)
-        favoriteButton.addTarget(self, action: #selector(favoriteButtonTapped), for: .touchUpInside)
-        favoriteButton.accessibilityLabel = isFav ? "お気に入り解除" : "お気に入り登録"
         let favoriteBarButton = UIBarButtonItem(customView: favoriteButton)
 
         let editButton = UIBarButtonItem(
@@ -211,7 +237,7 @@ class RecordDetailViewController: UIViewController {
             target: self,
             action: #selector(editButtonTapped)
         )
-        editButton.tintColor = UIColor(red: 175/255, green: 175/255, blue: 175/255, alpha: 1)
+        editButton.tintColor = .appSecondaryText
 
         let deleteButton = UIBarButtonItem(
             image: UIImage(systemName: "trash"),
@@ -223,6 +249,17 @@ class RecordDetailViewController: UIViewController {
         deleteButton.accessibilityLabel = "記録を削除"
 
         navigationItem.rightBarButtonItems = [editButton, favoriteBarButton, deleteButton]
+
+        updateFavoriteButton()
+    }
+
+    private func updateFavoriteButton() {
+        guard let record else { return }
+        let isFav = record.isFavorite
+        let heartConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
+        favoriteButton.setImage(UIImage(systemName: isFav ? "heart.fill" : "heart", withConfiguration: heartConfig), for: .normal)
+        favoriteButton.tintColor = isFav ? .appPrimary : .appSecondaryText
+        favoriteButton.accessibilityLabel = isFav ? "お気に入り解除" : "お気に入り登録"
     }
 
     private func setupConstraints() {
@@ -307,22 +344,34 @@ class RecordDetailViewController: UIViewController {
     // MARK: - Configuration
 
     private func configureWithRecord() {
+        guard let record else { return }
         let rawType = record.ramenType ?? ""
         let ramenType: RamenType
         if let parsed = RamenType(rawValue: rawType) {
             ramenType = parsed
         } else {
-            print("[RecordDetail] 不明なラーメン種類: \"\(rawType)\" → .other にフォールバック")
+            logger.warning("不明なラーメン種類: \"\(rawType, privacy: .public)\" → .other にフォールバック")
             ramenType = .other
         }
         let typeColor = UIColor.colorForRamenType(ramenType)
 
         // ヘッダー写真 or カラー背景
-        if let data = record.photo, let image = UIImage(data: data) {
-            headerImageView.image = image
-            headerImageView.isHidden = false
-            headerPlaceholderIcon.isHidden = true
-            headerView.backgroundColor = .black
+        if let data = record.photo {
+            // まずカラー背景を表示しておく
+            headerImageView.isHidden = true
+            headerPlaceholderIcon.isHidden = false
+            headerView.backgroundColor = typeColor
+
+            // バックグラウンドで画像デコード（大きい写真でのUIフリーズ防止）
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let image = UIImage(data: data) else { return }
+                DispatchQueue.main.async {
+                    self?.headerImageView.image = image
+                    self?.headerImageView.isHidden = false
+                    self?.headerPlaceholderIcon.isHidden = true
+                    self?.headerView.backgroundColor = .black
+                }
+            }
         } else {
             headerImageView.isHidden = true
             headerPlaceholderIcon.isHidden = false
@@ -357,13 +406,10 @@ class RecordDetailViewController: UIViewController {
         }
 
         if let visitDate = record.visitDate {
-            let fmt = DateFormatter()
-            fmt.dateFormat = "yyyy年M月d日（E）"
-            fmt.locale = Locale(identifier: "ja_JP")
             infoRows.append((
                 icon: "calendar",
                 title: "訪問日",
-                value: fmt.string(from: visitDate),
+                value: Self.visitDateFormatter.string(from: visitDate),
                 color: .appSecondary
             ))
         }
@@ -449,16 +495,18 @@ class RecordDetailViewController: UIViewController {
     // MARK: - Actions
 
     @objc private func favoriteButtonTapped() {
-        CoreDataManager.shared.toggleFavorite(record)
-        let isFav = record.isFavorite
-        let heartConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
-        favoriteButton.setImage(UIImage(systemName: isFav ? "heart.fill" : "heart", withConfiguration: heartConfig), for: .normal)
-        favoriteButton.tintColor = isFav ? .appPrimary : UIColor(red: 175/255, green: 175/255, blue: 175/255, alpha: 1)
-        favoriteButton.accessibilityLabel = isFav ? "お気に入り解除" : "お気に入り登録"
-        favoriteButton.bounceAnimation(scale: 1.4, duration: 0.12)
+        guard let record else { return }
+        let success = CoreDataManager.shared.toggleFavorite(record)
+        if success {
+            updateFavoriteButton()
+            favoriteButton.bounceAnimation(scale: 1.4, duration: 0.12)
+        } else {
+            showErrorAlert(message: "お気に入りの変更に失敗しました")
+        }
     }
 
     @objc private func editButtonTapped() {
+        guard let record else { return }
         let editVC = AddRecordViewController(recordToEdit: record)
         let nav = UINavigationController(rootViewController: editVC)
         nav.navigationBar.applyAppStyle()
@@ -467,6 +515,7 @@ class RecordDetailViewController: UIViewController {
     }
 
     @objc private func deleteButtonTapped() {
+        guard let record else { return }
         let alert = UIAlertController(
             title: "記録を削除しますか？",
             message: "この操作は取り消せません",
@@ -475,9 +524,19 @@ class RecordDetailViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel))
         alert.addAction(UIAlertAction(title: "削除", style: .destructive) { [weak self] _ in
             guard let self else { return }
-            CoreDataManager.shared.deleteRecord(self.record)
-            self.navigationController?.popViewController(animated: true)
+            let success = CoreDataManager.shared.deleteRecord(record)
+            if success {
+                self.navigationController?.popViewController(animated: true)
+            } else {
+                self.showErrorAlert(message: "記録の削除に失敗しました")
+            }
         })
+        present(alert, animated: true)
+    }
+
+    private func showErrorAlert(message: String) {
+        let alert = UIAlertController(title: "エラー", message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
 }

@@ -7,80 +7,30 @@
 
 import UIKit
 import CoreData
+import os
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.mennikki", category: "RecordList")
 
 /// 記録一覧画面
-class RecordListViewController: UIViewController {
+class RecordListViewController: BaseRecordListViewController {
 
     // MARK: - Properties
 
-    private var fetchedResultsController: NSFetchedResultsController<Record>?
-    private var searchController: UISearchController!
     private var selectedRamenTypes: [RamenType] = []
     private var selectedPrefecture: Prefecture?
     private var searchText: String = ""
     private var searchDebounceTimer: Timer?
-    private var animatedCells = Set<IndexPath>()
+    private lazy var searchController: UISearchController = {
+        let sc = UISearchController(searchResultsController: nil)
+        sc.searchResultsUpdater = self
+        sc.obscuresBackgroundDuringPresentation = false
+        sc.searchBar.placeholder = "店名で検索"
+        sc.searchBar.tintColor = .appPrimary
+        sc.searchBar.searchTextField.backgroundColor = .white
+        return sc
+    }()
 
     // MARK: - UI Components
-
-    private lazy var collectionView: UICollectionView = {
-        let layout = UICollectionViewFlowLayout()
-        layout.scrollDirection = .vertical
-        layout.minimumInteritemSpacing = 12
-        layout.minimumLineSpacing = 12
-        layout.sectionInset = UIEdgeInsets(top: 12, left: 10, bottom: 12, right: 10)
-
-        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .appBackground
-        collectionView.delegate = self
-        collectionView.dataSource = self
-        collectionView.register(RecordCell.self, forCellWithReuseIdentifier: RecordCell.reuseIdentifier)
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        return collectionView
-    }()
-
-    private let emptyStateImageView: UIImageView = {
-        let imageView = UIImageView()
-        let config = UIImage.SymbolConfiguration(pointSize: 80, weight: .regular)
-        imageView.image = UIImage(systemName: "bowl.fill", withConfiguration: config)
-        imageView.tintColor = .appSecondaryText
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        return imageView
-    }()
-
-    private let emptyStateLabel: UILabel = {
-        let label = UILabel()
-        label.text = "まだラーメンの記録がありません"
-        label.font = .appSectionHeader
-        label.textColor = .appText
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    private let emptyStateSubLabel: UILabel = {
-        let label = UILabel()
-        label.text = "＋ボタンから最初の記録を追加しましょう！"
-        label.font = .appBody
-        label.textColor = .appSecondaryText
-        label.textAlignment = .center
-        label.numberOfLines = 0
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    private lazy var emptyStateStackView: UIStackView = {
-        let stackView = UIStackView(arrangedSubviews: [
-            emptyStateImageView,
-            emptyStateLabel,
-            emptyStateSubLabel
-        ])
-        stackView.axis = .vertical
-        stackView.alignment = .center
-        stackView.spacing = 16
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        return stackView
-    }()
 
     // Floating Action Button（Duolingo 3D押し込みスタイル）
     private let fabButton: UIButton = {
@@ -99,24 +49,35 @@ class RecordListViewController: UIViewController {
         return button
     }()
 
-    // MARK: - Lifecycle
+    // MARK: - Base Class Configuration
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
+    override var emptyStateIconName: String { "bowl.fill" }
+    override var emptyStateTitleText: String { "まだラーメンの記録がありません" }
+    override var emptyStateSubTitleText: String { "＋ボタンから最初の記録を追加しましょう！" }
 
-        setupUI()
-        setupNavigationBar()
-        setupConstraints()
-        setupFetchedResultsController()
-        updateEmptyState()
+    override func fetchPredicate() -> NSPredicate? {
+        var predicates: [NSPredicate] = []
+
+        if !searchText.isEmpty {
+            predicates.append(NSPredicate(format: "storeName CONTAINS[cd] %@", searchText))
+        }
+        if !selectedRamenTypes.isEmpty {
+            let typeStrings = selectedRamenTypes.map { $0.rawValue }
+            predicates.append(NSPredicate(format: "ramenType IN %@", typeStrings))
+        }
+        if let prefecture = selectedPrefecture {
+            predicates.append(NSPredicate(format: "prefecture == %@", prefecture.rawValue))
+        }
+
+        guard !predicates.isEmpty else { return nil }
+        return NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
     }
 
     // MARK: - Setup
 
-    private func setupUI() {
-        view.backgroundColor = .appBackground
-        view.addSubview(collectionView)
-        view.addSubview(emptyStateStackView)
+    override func setupAdditionalUI() {
+        setupNavigationBar()
+
         view.addSubview(fabButton)
         fabButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
         fabButton.addTarget(self, action: #selector(fabTouchDown), for: .touchDown)
@@ -126,17 +87,18 @@ class RecordListViewController: UIViewController {
         collectionView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 88, right: 0)
     }
 
+    override func setupAdditionalConstraints() {
+        NSLayoutConstraint.activate([
+            fabButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            fabButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+            fabButton.widthAnchor.constraint(equalToConstant: 56),
+            fabButton.heightAnchor.constraint(equalToConstant: 56)
+        ])
+    }
+
     private func setupNavigationBar() {
         title = "記録"
         navigationItem.largeTitleDisplayMode = .never
-
-        // UISearchControllerの設定
-        searchController = UISearchController(searchResultsController: nil)
-        searchController.searchResultsUpdater = self
-        searchController.obscuresBackgroundDuringPresentation = false
-        searchController.searchBar.placeholder = "店名で検索"
-        searchController.searchBar.tintColor = .appPrimary
-        searchController.searchBar.searchTextField.backgroundColor = .white
 
         navigationItem.searchController = searchController
         navigationItem.hidesSearchBarWhenScrolling = true
@@ -158,89 +120,17 @@ class RecordListViewController: UIViewController {
         navigationItem.rightBarButtonItems = [typeFilterButton, prefFilterButton]
     }
 
-    private func setupConstraints() {
-        NSLayoutConstraint.activate([
-            // Collection View
-            collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+    // MARK: - Refresh
 
-            // Empty State Stack View
-            emptyStateStackView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyStateStackView.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -50),
-            emptyStateStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            emptyStateStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
+    private func refreshData() {
+        resetAnimatedCells()
 
-            // FAB
-            fabButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            fabButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-            fabButton.widthAnchor.constraint(equalToConstant: 56),
-            fabButton.heightAnchor.constraint(equalToConstant: 56)
-        ])
-    }
-
-    private func setupFetchedResultsController() {
-        let fetchRequest: NSFetchRequest<Record> = Record.fetchRequest()
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "visitDate", ascending: false)]
-
-        // 検索条件を設定
-        updateSearchPredicate(for: fetchRequest)
-
-        let context = CoreDataManager.shared.viewContext
-        fetchedResultsController = NSFetchedResultsController(
-            fetchRequest: fetchRequest,
-            managedObjectContext: context,
-            sectionNameKeyPath: nil,
-            cacheName: nil
-        )
-
-        fetchedResultsController?.delegate = self
-
-        do {
-            try fetchedResultsController?.performFetch()
-        } catch {
-            print("Error fetching records: \(error)")
-        }
-    }
-
-    private func updateSearchPredicate(for fetchRequest: NSFetchRequest<Record>) {
-        var predicates: [NSPredicate] = []
-
-        // 店名検索
-        if !searchText.isEmpty {
-            predicates.append(NSPredicate(format: "storeName CONTAINS[cd] %@", searchText))
-        }
-
-        // ラーメン種類フィルター
-        if !selectedRamenTypes.isEmpty {
-            let typeStrings = selectedRamenTypes.map { $0.rawValue }
-            predicates.append(NSPredicate(format: "ramenType IN %@", typeStrings))
-        }
-
-        // 都道府県フィルター
-        if let prefecture = selectedPrefecture {
-            predicates.append(NSPredicate(format: "prefecture == %@", prefecture.rawValue))
-        }
-
-        // 複数の条件を結合
-        if !predicates.isEmpty {
-            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
-        } else {
-            fetchRequest.predicate = nil
-        }
-    }
-
-    private func refreshFetchedResultsController() {
-        animatedCells.removeAll()
-
-        // 既存の FRC がある場合は predicate を更新して再フェッチ（FRC 再作成を回避）
         if let frc = fetchedResultsController {
-            updateSearchPredicate(for: frc.fetchRequest)
+            frc.fetchRequest.predicate = fetchPredicate()
             do {
                 try frc.performFetch()
             } catch {
-                print("Error re-fetching records: \(error)")
+                logger.error("Error re-fetching records: \(error.localizedDescription, privacy: .public)")
             }
         } else {
             setupFetchedResultsController()
@@ -248,14 +138,6 @@ class RecordListViewController: UIViewController {
 
         collectionView.reloadData()
         updateEmptyState()
-    }
-
-    // MARK: - Helper Methods
-
-    private func updateEmptyState() {
-        let isEmpty = fetchedResultsController?.fetchedObjects?.isEmpty ?? true
-        emptyStateStackView.isHidden = !isEmpty
-        collectionView.isHidden = isEmpty
     }
 
     // MARK: - Actions
@@ -298,7 +180,7 @@ class RecordListViewController: UIViewController {
                     self.selectedRamenTypes.append(type)
                 }
 
-                self.refreshFetchedResultsController()
+                self.refreshData()
             }
 
             alert.addAction(action)
@@ -308,7 +190,7 @@ class RecordListViewController: UIViewController {
         if !selectedRamenTypes.isEmpty {
             let clearAction = UIAlertAction(title: "フィルターをクリア", style: .destructive) { [weak self] _ in
                 self?.selectedRamenTypes.removeAll()
-                self?.refreshFetchedResultsController()
+                self?.refreshData()
             }
             alert.addAction(clearAction)
         }
@@ -355,7 +237,7 @@ class RecordListViewController: UIViewController {
                 } else {
                     self.selectedPrefecture = prefecture
                 }
-                self.refreshFetchedResultsController()
+                self.refreshData()
             }
             alert.addAction(action)
         }
@@ -363,7 +245,7 @@ class RecordListViewController: UIViewController {
         if selectedPrefecture != nil {
             let clearAction = UIAlertAction(title: "フィルターをクリア", style: .destructive) { [weak self] _ in
                 self?.selectedPrefecture = nil
-                self?.refreshFetchedResultsController()
+                self?.refreshData()
             }
             alert.addAction(clearAction)
         }
@@ -377,77 +259,6 @@ class RecordListViewController: UIViewController {
 
         present(alert, animated: true)
     }
-
-}
-
-// MARK: - UICollectionViewDataSource
-
-extension RecordListViewController: UICollectionViewDataSource {
-
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return fetchedResultsController?.fetchedObjects?.count ?? 0
-    }
-
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(
-            withReuseIdentifier: RecordCell.reuseIdentifier,
-            for: indexPath
-        ) as? RecordCell else {
-            return UICollectionViewCell()
-        }
-
-        if let record = fetchedResultsController?.object(at: indexPath) {
-            cell.configure(with: record)
-        }
-
-        return cell
-    }
-}
-
-// MARK: - UICollectionViewDelegate
-
-extension RecordListViewController: UICollectionViewDelegate {
-
-    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
-        guard !animatedCells.contains(indexPath) else { return }
-        animatedCells.insert(indexPath)
-        let delay = Double(indexPath.item % 8) * 0.05
-        cell.fadeInWithSlide(delay: delay)
-    }
-
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard let record = fetchedResultsController?.object(at: indexPath) else { return }
-        let detailVC = RecordDetailViewController(record: record)
-        navigationController?.pushViewController(detailVC, animated: true)
-    }
-}
-
-// MARK: - UICollectionViewDelegateFlowLayout
-
-extension RecordListViewController: UICollectionViewDelegateFlowLayout {
-
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        let spacing: CGFloat = 12
-        let margins: CGFloat = 10 * 2
-        let availableWidth = collectionView.bounds.width - margins - spacing
-        let cellWidth = availableWidth / 2
-
-        // アスペクト比 1:1.0
-        let cellHeight = cellWidth * 1.0
-
-        return CGSize(width: cellWidth, height: cellHeight)
-    }
-}
-
-// MARK: - NSFetchedResultsControllerDelegate
-
-extension RecordListViewController: NSFetchedResultsControllerDelegate {
-
-    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        animatedCells.removeAll()
-        collectionView.reloadData()
-        updateEmptyState()
-    }
 }
 
 // MARK: - UISearchResultsUpdating
@@ -458,7 +269,7 @@ extension RecordListViewController: UISearchResultsUpdating {
         searchText = searchController.searchBar.text ?? ""
         searchDebounceTimer?.invalidate()
         searchDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
-            self?.refreshFetchedResultsController()
+            self?.refreshData()
         }
     }
 }

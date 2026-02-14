@@ -77,12 +77,6 @@
 - 適切なaccessibilityTraitを設定（.button、.image、.headerなど）
 - Dynamic Type対応を考慮
 
-### 6. テスト
-
-- Core DataのCRUD操作のUnit Test
-- 検索ロジックのUnit Test
-- エッジケースのテスト（0件、大量データなど）
-
 ---
 
 ## プロジェクト構成

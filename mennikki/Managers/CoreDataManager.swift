@@ -7,7 +7,9 @@
 
 import Foundation
 import CoreData
-import UIKit
+import os
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.mennikki", category: "CoreData")
 
 /// Core Dataの操作を管理するシングルトンクラス
 class CoreDataManager {
@@ -20,24 +22,38 @@ class CoreDataManager {
 
     // MARK: - Core Data Stack
 
-    /// Persistent Container（AppDelegateから取得、キャッシュ）
+    /// ストアが正常に読み込まれたかどうか
+    private var isStoreLoaded = false
+
+    /// Persistent Container
     private lazy var persistentContainer: NSPersistentContainer = {
-        guard let appDelegate = UIApplication.shared.delegate as? AppDelegate else {
-            assertionFailure("AppDelegate not found")
-            // フォールバック: 独自コンテナを生成（テスト環境等）
-            let container = NSPersistentContainer(name: "mennikki")
-            container.loadPersistentStores { _, error in
-                if let error { print("[CoreData] Fallback store error: \(error)") }
+        let container = NSPersistentContainer(name: "mennikki")
+        // 端末ロック中のデータアクセスを防止
+        let description = container.persistentStoreDescriptions.first
+        description?.setOption(
+            FileProtectionType.complete as NSObject,
+            forKey: NSPersistentStoreFileProtectionKey
+        )
+        container.loadPersistentStores { [weak self] _, error in
+            if let error = error as NSError? {
+                logger.error("Persistent store load error: \(error.localizedDescription, privacy: .public)")
+            } else {
+                self?.isStoreLoaded = true
             }
-            return container
         }
-        return appDelegate.persistentContainer
+        return container
     }()
 
-    /// View Context（メインスレッド用）
-    var viewContext: NSManagedObjectContext {
-        assert(Thread.isMainThread, "viewContext はメインスレッドからのみアクセスしてください")
-        return persistentContainer.viewContext
+    /// View Context（メインスレッド用）。ストア未読み込み時は nil を返す。
+    var viewContext: NSManagedObjectContext? {
+        dispatchPrecondition(condition: .onQueue(.main))
+        // persistentContainer へのアクセスで lazy 初期化 → loadPersistentStores → isStoreLoaded = true
+        let container = persistentContainer
+        guard isStoreLoaded else {
+            logger.warning("Store not loaded — skipping operation")
+            return nil
+        }
+        return container.viewContext
     }
 
     /// Background Context（バックグラウンド処理用）
@@ -70,7 +86,7 @@ class CoreDataManager {
         isFavorite: Bool = false,
         prefecture: Prefecture? = nil
     ) -> Record? {
-        let context = viewContext
+        guard let context = viewContext else { return nil }
 
         let record = Record(context: context)
         record.id = UUID()
@@ -89,7 +105,7 @@ class CoreDataManager {
             try context.save()
             return record
         } catch {
-            print("Error creating record: \(error)")
+            logger.error("Error creating record: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -137,7 +153,7 @@ class CoreDataManager {
     /// - Returns: 成功時true、失敗時false
     @discardableResult
     func deleteRecord(_ record: Record) -> Bool {
-        let context = viewContext
+        guard let context = viewContext else { return false }
         context.delete(record)
         return saveContext()
     }
@@ -159,9 +175,9 @@ class CoreDataManager {
         request.sortDescriptors = sortDescriptors ?? [NSSortDescriptor(key: "visitDate", ascending: false)]
 
         do {
-            return try viewContext.fetch(request)
+            return try viewContext?.fetch(request) ?? []
         } catch {
-            print("Error fetching records: \(error)")
+            logger.error("Error fetching records: \(error.localizedDescription, privacy: .public)")
             return []
         }
     }
@@ -175,9 +191,9 @@ class CoreDataManager {
         request.sortDescriptors = sortDescriptors ?? [NSSortDescriptor(key: "visitDate", ascending: false)]
 
         do {
-            return try viewContext.fetch(request)
+            return try viewContext?.fetch(request) ?? []
         } catch {
-            print("Error fetching favorite records: \(error)")
+            logger.error("Error fetching favorite records: \(error.localizedDescription, privacy: .public)")
             return []
         }
     }
@@ -216,9 +232,9 @@ class CoreDataManager {
         request.sortDescriptors = sortDescriptors ?? [NSSortDescriptor(key: "visitDate", ascending: false)]
 
         do {
-            return try viewContext.fetch(request)
+            return try viewContext?.fetch(request) ?? []
         } catch {
-            print("Error searching records: \(error)")
+            logger.error("Error searching records: \(error.localizedDescription, privacy: .public)")
             return []
         }
     }
@@ -232,28 +248,42 @@ class CoreDataManager {
         request.predicate = NSPredicate(format: "prefecture != nil")
 
         do {
-            let results = try viewContext.fetch(request)
+            let results = try viewContext?.fetch(request) ?? []
             return results.compactMap { $0["prefecture"] as? String }
         } catch {
-            print("[CoreData] Error fetching distinct prefectures: \(error)")
+            logger.error("Error fetching distinct prefectures: \(error.localizedDescription, privacy: .public)")
             return []
         }
     }
 
     // MARK: - Helper Methods
 
+    /// 未保存の変更があれば保存する（バックグラウンド移行時など外部から呼ぶ用）
+    func saveIfNeeded() {
+        dispatchPrecondition(condition: .onQueue(.main))
+        guard isStoreLoaded else { return }
+        let context = persistentContainer.viewContext
+        if context.hasChanges {
+            do {
+                try context.save()
+            } catch {
+                logger.error("Error saving on background: \(error.localizedDescription, privacy: .public)")
+            }
+        }
+    }
+
     /// コンテキストを保存
     /// - Returns: 成功時true、失敗時false
     @discardableResult
     private func saveContext() -> Bool {
-        let context = viewContext
+        guard let context = viewContext else { return false }
 
         if context.hasChanges {
             do {
                 try context.save()
                 return true
             } catch {
-                print("Error saving context: \(error)")
+                logger.error("Error saving context: \(error.localizedDescription, privacy: .public)")
                 return false
             }
         }

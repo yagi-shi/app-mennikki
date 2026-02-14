@@ -16,6 +16,6 @@ extension UIColor {
     static let appText       = UIColor(red: 60/255,  green: 60/255,  blue: 60/255,  alpha: 1)
     static let appSecondaryText = UIColor(red: 175/255, green: 175/255, blue: 175/255, alpha: 1)
     static let appBorder     = UIColor(red: 229/255, green: 229/255, blue: 229/255, alpha: 1)
-    // 旧 appTagBackground は互換のため残す
-    static let appTagBackground = UIColor(red: 255/255, green: 230/255, blue: 109/255, alpha: 1)
+    static let appFieldBorder = UIColor(red: 149/255, green: 165/255, blue: 166/255, alpha: 0.2)
+    static let appCardBorder  = UIColor(red: 235/255, green: 235/255, blue: 235/255, alpha: 1)
 }
