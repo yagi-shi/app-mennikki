@@ -7,11 +7,12 @@ UITabBarControllerとUINavigationControllerを使用した基本的な画面構�
 
 ### 1. UITabBarControllerの設定
 - SceneDelegateでrootViewControllerとして設定
-- Duolingo風のカスタマイズ
-  - 背景色: 白
-  - 選択時tintColor: プライマリカラー
-  - 未選択時tintColor: 薄いグレー
-  - 上部に薄いシャドウ
+- `applyAppStyle()` によるDuolingo風カスタマイズ
+  - 背景色: 白（opaque）
+  - 選択時tintColor: appPrimary
+  - 未選択時tintColor: appSecondaryText
+  - 上部にappBorder色のボーダー
+  - フォント: rounded 10pt（通常: semibold、選択時: bold）
 
 ### 2. タブ構成
 - 記録一覧タブ
@@ -24,24 +25,31 @@ UITabBarControllerとUINavigationControllerを使用した基本的な画面構�
   - タイトル: "お気に入り"
 
 ### 3. UINavigationControllerのカスタマイズ
-- 背景色: 白
-- タイトルフォント: 20pt Bold
-- tintColor: プライマリカラー
-- 薄いシャドウ
+- `applyAppStyle()` による設定
+  - 背景色: 白（opaque）
+  - タイトルフォント: appNavigationTitle（20pt bold rounded）
+  - ラージタイトルフォント: appLargeTitle（28pt heavy rounded）
+  - shadowColor: appBorder
+  - tintColor: appPrimary
+  - prefersLargeTitles: true
 
-### 4. 空のViewControllerの作成
-- RecordListViewController（UIViewController）
-- FavoriteListViewController（UIViewController）
+### 4. ViewControllerの作成
+- RecordListViewController（BaseRecordListViewController継承）
+- FavoriteListViewController（BaseRecordListViewController継承）
+
+### 5. アプリライフサイクル
+- sceneDidEnterBackground: CoreDataManager.shared.saveIfNeeded()
 
 ## Todo
-- [ ] SceneDelegateでUITabBarControllerを設定
-- [ ] UITabBarControllerのカスタマイズを実装
-- [ ] RecordListViewControllerを作成（空実装）
-- [ ] FavoriteListViewControllerを作成（空実装）
-- [ ] 各ViewControllerをUINavigationControllerでラップ
-- [ ] タブアイテムの設定（アイコン・タイトル）
-- [ ] UINavigationBarのカスタマイズを実装
-- [ ] 動作確認（タブ切り替え）
+- [x] SceneDelegateでUITabBarControllerを設定
+- [x] UITabBar+App.swiftの `applyAppStyle()` を実装
+- [x] RecordListViewControllerを作成
+- [x] FavoriteListViewControllerを作成
+- [x] 各ViewControllerをUINavigationControllerでラップ
+- [x] タブアイテムの設定（アイコン・タイトル）
+- [x] UINavigationBar+App.swiftの `applyAppStyle()` を実装
+- [x] sceneDidEnterBackgroundでCore Data保存
+- [x] 動作確認（タブ切り替え）
 
 ## 依存関係
 - 001_プロジェクト初期設定

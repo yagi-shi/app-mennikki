@@ -5,48 +5,65 @@
 
 ## 実装内容
 
-### 1. RecordListViewControllerの実装
-- UICollectionViewをプログラマティックに追加
-- Auto Layoutで画面全体に配置
+### 1. BaseRecordListViewControllerの作成（共通基底クラス）
+- RecordListViewControllerとFavoriteListViewControllerの共通処理を集約
+- UICollectionViewをプログラマティックに追加（Auto Layout配置）
 - NSFetchedResultsControllerでCore Dataと連携
+- 空状態表示（アイコン + メッセージ + サブメッセージ）
+- スタガーアニメーション（フェードイン+スライド）
+- サブクラス用のカスタマイズフック（fetchPredicate, emptyState系, setupAdditionalUI等）
 
 ### 2. UICollectionViewFlowLayoutの設定
 - 2列グリッド
 - 列間隔: 12pt
 - 行間隔: 12pt
-- セクションインセット: 上下左右16pt
-- セルサイズ計算: (画面幅 - 左右マージン32pt - 列間隔12pt) / 2
-- アスペクト比: 幅:高さ = 1:1.3
+- セクションインセット: 上下12pt、左右10pt
+- セルサイズ計算: (画面幅 - 左右マージン20pt - 列間隔12pt) / 2
+- アスペクト比: 幅:高さ = 1:1（正方形）
 
 ### 3. カスタムRecordCellの作成
-- 写真エリア（上部、高さ120pt、角丸12pt上部のみ）
-- 店名ラベル（15pt、Semibold、2行まで）
-- ラーメン種類タグ（イエロー背景、角丸8pt）
-- 訪問日ラベル（12pt、グレー）
-- お気に入りバッジ（右上、heart.fill）
-- 白色背景、角丸12pt、軽いシャドウ
+- **上部エリア**（セル高さの60%）: 写真 or ラーメン種類カラー背景
+  - 写真あり: scaleAspectFill + ダークグラデーションオーバーレイ
+  - 写真なし: 種類カラー背景 + fork.knifeプレースホルダー（白60%透過）
+- **お気に入りバッジ**: 右上8ptマージン、appPrimary背景円形（24x24pt）、白heart.fill
+- **店名**: appStoreName（17pt bold）、2行まで
+- **ラーメン種類タグ**: 種類カラー背景、白テキスト、角丸8pt
+- **ミニ星評価**: 10x10ptの星5個（appSuccess / ライトグレー）、タグの横
+- **セルスタイル**: 角丸16pt、ハードシャドウ（appBorder、opacity 1.0、offset 5pt）、ボーダー2pt
 
-### 4. セルタップアニメーション
-- タップ時に0.95倍スケールダウン（0.1秒）
+### 4. Duolingo 3D押し込みアニメーション
+- isHighlightedで5px下にずれてシャドウが消える（0.08秒）
 
-### 5. 空状態の実装
-- 記録が0件の場合のEmpty State表示
-- ラーメンボウルアイコン（bowl.fill）
-- メッセージ表示
+### 5. 画像キャッシュとダウンサンプリング
+- NSCache（静的共有、RecordCell内）
+- CGImageSourceCreateThumbnailAtIndex（最大300px）
+- バックグラウンドスレッドでデコード
+- currentRecordIDによるセル再利用時の画像すり替え防止
+
+### 6. RecordListViewControllerの実装
+- BaseRecordListViewControllerを継承
+- 空状態: bowl.fill アイコン、「まだラーメンの記録がありません」
+- FABボタン（詳細は005で実装）
+
+### 7. 空状態の実装
+- UIStackView（アイコン + タイトル + サブタイトル）
+- 画面中央に配置（Y方向-50ptオフセット）
 
 ## Todo
-- [ ] RecordListViewControllerにUICollectionViewを追加
-- [ ] UICollectionViewをAuto Layoutで配置
-- [ ] UICollectionViewDelegateに準拠
-- [ ] UICollectionViewDataSourceに準拠
-- [ ] UICollectionViewDelegateFlowLayoutに準拠
-- [ ] RecordCellクラスを作成
-- [ ] RecordCellのレイアウトを実装
-- [ ] NSFetchedResultsControllerを設定
-- [ ] セルにデータをバインド
-- [ ] セルタップアニメーションを実装
-- [ ] 空状態の表示を実装
-- [ ] 動作確認（テストデータで表示）
+- [x] BaseRecordListViewControllerを作成
+- [x] UICollectionViewをAuto Layoutで配置
+- [x] UICollectionViewDelegateに準拠
+- [x] UICollectionViewDataSourceに準拠
+- [x] UICollectionViewDelegateFlowLayoutに準拠
+- [x] RecordCellクラスを作成
+- [x] RecordCellのDuolingo風レイアウトを実装（種類カラー背景、ハードシャドウ）
+- [x] 画像キャッシュとダウンサンプリングを実装
+- [x] NSFetchedResultsControllerを設定
+- [x] セルにデータをバインド
+- [x] Duolingo 3D押し込みアニメーションを実装
+- [x] スタガーアニメーションを実装
+- [x] 空状態の表示を実装
+- [x] 動作確認
 
 ## 依存関係
 - 001_プロジェクト初期設定
@@ -55,6 +72,7 @@
 
 ## 完了条件
 - 2列グリッドで記録が表示される
-- セルがDuolingo風にデザインされている
-- セルタップアニメーションが動作する
+- セルがDuolingo風にデザインされている（ハードシャドウ、種類カラー背景）
+- 3D押し込みアニメーションが動作する
+- 画像キャッシュとダウンサンプリングが機能する
 - 空状態が適切に表示される
