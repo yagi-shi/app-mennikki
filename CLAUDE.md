@@ -4,7 +4,7 @@
 
 ラーメンの食事履歴をシンプルに記録・管理できるiOSアプリ。Duolingo風の明るく親しみやすいデザインで、記録の追加・閲覧・検索・お気に入り管理が可能。
 
-**プラットフォーム:** iOS 15+
+**プラットフォーム:** iOS 17.0+
 **開発言語:** Swift
 **UI:** UIKit（コードベース、Storyboard不使用）
 **データ永続化:** Core Data（ローカルのみ）
@@ -67,8 +67,9 @@
 
 #### メモリ管理
 - 写真データ（Data型）が大きくなる可能性があるため、適切なリサイズとキャッシュ管理を行う
-- 画像は表示前に適切なサイズにリサイズ
-- 不要になった画像データは適切に解放
+- 画像は表示前に適切なサイズにリサイズ（最大長辺800px、JPEG品質0.75）
+- サムネイルは CGImageSourceCreateThumbnailAtIndex でダウンサンプリング（最大300px）
+- 画像キャッシュは NSCache（静的共有インスタンス）を使用
 
 ### 5. アクセシビリティ
 
@@ -83,13 +84,17 @@
 
 ```
 mennikki/
-├── Models/              # Core Dataモデル、Enum定義
-├── Views/               # カスタムビュー、セル
+├── Models/              # Core Dataモデル、Enum定義（RamenType, Prefecture）
+├── Views/               # カスタムビュー、セル（RecordCell, StarRatingView）
 ├── ViewControllers/     # 画面ごとのViewController
-├── Managers/            # Core Dataマネージャーなど
-├── Extensions/          # UIColor、UIFont、UIViewなどの拡張
-├── Resources/           # Assets、Core Dataモデルファイル
-└── Utils/               # ユーティリティクラス
+│   ├── BaseRecordListViewController.swift   # 一覧画面の共通基底クラス
+│   ├── RecordListViewController.swift       # 記録一覧（検索・フィルター付き）
+│   ├── FavoriteListViewController.swift     # お気に入り一覧
+│   ├── RecordDetailViewController.swift     # 記録詳細
+│   └── AddRecordViewController.swift        # 新規作成・編集（共用）
+├── Managers/            # CoreDataManager（シングルトン）
+├── Extensions/          # UIColor, UIFont, UIView, UINavigationBar, UITabBar 拡張
+└── Resources/           # Assets、Core Dataモデルファイル
 ```
 
 ---
@@ -102,24 +107,31 @@ mennikki/
 - **[デザインガイドライン](docs/design/デザインガイドライン.md)** - カラー、フォント、UI要素のスタイル
 - **[機能仕様書](docs/design/機能仕様書.md)** - 各機能の詳細仕様
 - **[画面設計書](docs/design/画面設計.md)** - 画面構成、ナビゲーション構造
+- **[テストケース](docs/test/test.md)** - 手動テスト結果（2026/02/23 実施）
 
 ---
 
-## 実装タスク
+## 実装ステータス
 
-実装タスクは `/docs` 配下のチケットファイルで管理しています：
+全チケット実装完了。
 
-- **001_プロジェクト初期設定.md** - Storyboard削除、Core Dataセットアップ
-- **002_デザインシステム構築.md** - カラー・フォント・スタイル定義
-- **003_TabBarとNavigation構築.md** - TabBar、NavigationController
-- **004_記録一覧画面（CollectionView）.md** - 2列グリッドレイアウト
-- **005_新規記録画面.md** - 記録作成フォーム
-- **006_記録詳細画面.md** - 詳細情報表示
-- **007_記録編集機能.md** - 編集・削除
-- **008_検索機能.md** - 店名検索、種類フィルター
-- **009_お気に入り機能.md** - お気に入り登録・一覧
-- **010_アクセシビリティ対応.md** - VoiceOver、Dynamic Type
-- **011_最終調整とテスト.md** - エラーハンドリング、最適化
+| チケット | 内容 | 状態 |
+|---------|------|------|
+| 001 | プロジェクト初期設定 | 完了 |
+| 002 | デザインシステム構築 | 完了 |
+| 003 | TabBarとNavigation構築 | 完了 |
+| 004 | 記録一覧画面（CollectionView） | 完了 |
+| 005 | 新規記録画面 | 完了 |
+| 006 | 記録詳細画面 | 完了 |
+| 007 | 記録編集機能 | 完了 |
+| 008 | 検索機能 | 完了 |
+| 009 | お気に入り機能 | 完了 |
+| 010 | アクセシビリティ対応 | 完了 |
+| 011 | 最終調整とテスト | 完了 |
+
+### 既知の不具合
+
+- **5-5**: 編集画面で写真を変更して保存しても、詳細画面・一覧画面に反映されない
 
 ---
 
@@ -134,10 +146,8 @@ mennikki/
 
 ---
 
-## 開発のヒント
+## 開発環境・注意事項
 
-1. まず `docs/design/` 配下の設計書を確認し、全体像を把握する
-2. `/docs` 配下のチケットファイルを順番に実装する
-3. デザインシステムを活用し、統一感のあるUIを構築する
-4. 各機能実装後、VoiceOverでアクセシビリティを確認する
-5. 定期的にメモリリークをチェックする
+- **Xcode** を使用。`PBXFileSystemSynchronizedRootGroup` によりファイルが自動追加されるため、pbxprojの手動編集は不要
+- **Deployment Target は iOS 17.0**（Swift 5.10 + Xcode 16.2 で `_swift_task_deinitOnExecutor` リンクエラーが発生するため iOS 15 から変更）
+- `UIButton.contentEdgeInsets` / `titleEdgeInsets` / `imageEdgeInsets` は iOS 15 deprecated。`UIButton.Configuration` または `NSString.size(withAttributes:)` で代替
