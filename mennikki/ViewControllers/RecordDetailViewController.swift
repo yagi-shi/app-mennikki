@@ -238,6 +238,7 @@ class RecordDetailViewController: UIViewController {
             action: #selector(editButtonTapped)
         )
         editButton.tintColor = .appSecondaryText
+        editButton.accessibilityLabel = "記録を編集"
 
         let deleteButton = UIBarButtonItem(
             image: UIImage(systemName: "trash"),

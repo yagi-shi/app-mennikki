@@ -73,6 +73,18 @@ class RecordListViewController: BaseRecordListViewController {
         return NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
     }
 
+    // MARK: - Lifecycle
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationItem.hidesSearchBarWhenScrolling = false
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        navigationItem.hidesSearchBarWhenScrolling = true
+    }
+
     // MARK: - Setup
 
     override func setupAdditionalUI() {
