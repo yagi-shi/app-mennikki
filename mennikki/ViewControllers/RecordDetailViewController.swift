@@ -24,8 +24,12 @@ class RecordDetailViewController: UIViewController {
         return fmt
     }()
 
+    private static let defaultHeaderHeight: CGFloat = 220
+    private static let maxHeaderHeight: CGFloat = 400
+
     private let recordID: NSManagedObjectID
     private var record: Record?
+    private var headerHeightConstraint: NSLayoutConstraint!
     private lazy var favoriteButton: UIButton = {
         let button = UIButton(type: .system)
         let heartConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
@@ -264,7 +268,7 @@ class RecordDetailViewController: UIViewController {
     }
 
     private func setupConstraints() {
-        let headerHeight: CGFloat = 220
+        headerHeightConstraint = headerView.heightAnchor.constraint(equalToConstant: Self.defaultHeaderHeight)
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
@@ -282,7 +286,7 @@ class RecordDetailViewController: UIViewController {
             headerView.topAnchor.constraint(equalTo: contentView.topAnchor),
             headerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             headerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            headerView.heightAnchor.constraint(equalToConstant: headerHeight),
+            headerHeightConstraint,
 
             headerImageView.topAnchor.constraint(equalTo: headerView.topAnchor),
             headerImageView.leadingAnchor.constraint(equalTo: headerView.leadingAnchor),
@@ -367,16 +371,19 @@ class RecordDetailViewController: UIViewController {
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 guard let image = UIImage(data: data) else { return }
                 DispatchQueue.main.async {
-                    self?.headerImageView.image = image
-                    self?.headerImageView.isHidden = false
-                    self?.headerPlaceholderIcon.isHidden = true
-                    self?.headerView.backgroundColor = .black
+                    guard let self else { return }
+                    self.headerImageView.image = image
+                    self.headerImageView.isHidden = false
+                    self.headerPlaceholderIcon.isHidden = true
+                    self.headerView.backgroundColor = .black
+                    self.updateHeaderHeight(for: image)
                 }
             }
         } else {
             headerImageView.isHidden = true
             headerPlaceholderIcon.isHidden = false
             headerView.backgroundColor = typeColor
+            headerHeightConstraint.constant = Self.defaultHeaderHeight
         }
 
         // 店名
@@ -533,6 +540,16 @@ class RecordDetailViewController: UIViewController {
             }
         })
         present(alert, animated: true)
+    }
+
+    /// 画像のアスペクト比に応じてヘッダー高さを更新（220〜400pt）
+    private func updateHeaderHeight(for image: UIImage) {
+        let imageSize = image.size
+        guard imageSize.width > 0 else { return }
+        let screenWidth = view.bounds.width
+        let fittingHeight = screenWidth * imageSize.height / imageSize.width
+        let clampedHeight = min(max(fittingHeight, Self.defaultHeaderHeight), Self.maxHeaderHeight)
+        headerHeightConstraint.constant = clampedHeight
     }
 
     private func showErrorAlert(message: String) {

@@ -567,50 +567,68 @@ class AddRecordViewController: UIViewController {
         let rating = Int16(starRatingView.rating)
         let comment = commentText.isEmpty ? nil : commentText
 
-        var photoData: Data?
-        if let image = selectedImage {
-            let resized = resizeImage(image)
-            photoData = resized.jpegData(compressionQuality: 0.75)
-        } else if isEditMode, let existing = recordToEdit?.photo {
-            photoData = existing
-        }
+        let image = selectedImage
+        let existingPhoto: Data? = (isEditMode ? recordToEdit?.photo : nil)
+        let visitDate = visitDatePicker.date
+        let isFavorite = isEditMode ? (recordToEdit?.isFavorite ?? false) : false
+        let record = recordToEdit
+        let editMode = isEditMode
 
-        var saveSuccess = false
+        view.isUserInteractionEnabled = false
 
-        if isEditMode, let record = recordToEdit {
-            saveSuccess = CoreDataManager.shared.updateRecord(
-                record,
-                storeName: storeName,
-                ramenType: ramenType,
-                visitDate: visitDatePicker.date,
-                cost: cost,
-                rating: rating,
-                comment: comment,
-                photo: photoData,
-                isFavorite: record.isFavorite,
-                prefecture: selectedPrefecture
-            )
-        } else {
-            saveSuccess = CoreDataManager.shared.createRecord(
-                storeName: storeName,
-                ramenType: ramenType,
-                visitDate: visitDatePicker.date,
-                cost: cost,
-                rating: rating,
-                comment: comment,
-                photo: photoData,
-                prefecture: selectedPrefecture
-            ) != nil
-        }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
 
-        guard saveSuccess else {
-            showAlert(title: "保存エラー", message: "データの保存に失敗しました。空き容量を確認してください。")
-            return
-        }
+            var photoData: Data?
+            if let image = image {
+                let resized = self.resizeImage(image)
+                photoData = resized.jpegData(compressionQuality: 0.75)
+            } else if editMode, let existing = existingPhoto {
+                photoData = existing
+            }
 
-        showSuccessAnimation()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.dismiss(animated: true)
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.view.isUserInteractionEnabled = true
+
+                var saveSuccess = false
+
+                if editMode, let record = record {
+                    saveSuccess = CoreDataManager.shared.updateRecord(
+                        record,
+                        storeName: storeName,
+                        ramenType: ramenType,
+                        visitDate: visitDate,
+                        cost: cost,
+                        rating: rating,
+                        comment: comment,
+                        photo: photoData,
+                        isFavorite: isFavorite,
+                        prefecture: selectedPrefecture
+                    )
+                } else {
+                    saveSuccess = CoreDataManager.shared.createRecord(
+                        storeName: storeName,
+                        ramenType: ramenType,
+                        visitDate: visitDate,
+                        cost: cost,
+                        rating: rating,
+                        comment: comment,
+                        photo: photoData,
+                        prefecture: selectedPrefecture
+                    ) != nil
+                }
+
+                guard saveSuccess else {
+                    self.showAlert(title: "保存エラー", message: "データの保存に失敗しました。空き容量を確認してください。")
+                    return
+                }
+
+                self.showSuccessAnimation()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    self?.dismiss(animated: true)
+                }
+            }
         }
     }
 
@@ -674,7 +692,9 @@ class AddRecordViewController: UIViewController {
         let newSize = CGSize(width: (size.width * scale).rounded(),
                              height: (size.height * scale).rounded())
 
-        let renderer = UIGraphicsImageRenderer(size: newSize)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1.0
+        let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
         return renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: newSize))
         }
