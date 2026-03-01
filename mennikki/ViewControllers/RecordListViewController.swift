@@ -20,14 +20,58 @@ class RecordListViewController: BaseRecordListViewController {
     private var selectedPrefecture: Prefecture?
     private var searchText: String = ""
     private var searchDebounceTimer: Timer?
-    private lazy var searchController: UISearchController = {
-        let sc = UISearchController(searchResultsController: nil)
-        sc.searchResultsUpdater = self
-        sc.obscuresBackgroundDuringPresentation = false
-        sc.searchBar.placeholder = "店名で検索"
-        sc.searchBar.tintColor = .appPrimary
-        sc.searchBar.searchTextField.backgroundColor = .white
-        return sc
+    private let searchBarHeight: CGFloat = 52
+    private var searchFieldTrailingToWrapper: NSLayoutConstraint!
+    private var searchFieldTrailingToCancel: NSLayoutConstraint!
+    private let searchBarWrapperView: UIView = {
+        let v = UIView()
+        v.backgroundColor = .white
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
+    private let searchBarSeparator: UIView = {
+        let v = UIView()
+        v.backgroundColor = .appBorder
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
+    private lazy var searchTextField: UITextField = {
+        let tf = UITextField()
+        tf.placeholder = "店名で検索"
+        tf.tintColor = .appPrimary
+        tf.backgroundColor = UIColor(white: 0.95, alpha: 1)
+        tf.layer.cornerRadius = 10
+        tf.font = .systemFont(ofSize: 16)
+        tf.clearButtonMode = .whileEditing
+        tf.returnKeyType = .search
+
+        // 検索アイコン
+        let iconView = UIImageView(image: UIImage(systemName: "magnifyingglass"))
+        iconView.tintColor = .appSecondaryText
+        iconView.contentMode = .scaleAspectFit
+        iconView.frame = CGRect(x: 0, y: 0, width: 28, height: 20)
+        let leftContainer = UIView(frame: CGRect(x: 0, y: 0, width: 36, height: 20))
+        iconView.frame.origin.x = 10
+        leftContainer.addSubview(iconView)
+        tf.leftView = leftContainer
+        tf.leftViewMode = .always
+
+        tf.addTarget(self, action: #selector(searchTextChanged), for: .editingChanged)
+        tf.delegate = self
+        tf.translatesAutoresizingMaskIntoConstraints = false
+        tf.accessibilityLabel = "店名で検索"
+        return tf
+    }()
+    private lazy var searchCancelButton: UIButton = {
+        let button = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
+        button.setImage(UIImage(systemName: "xmark.circle.fill", withConfiguration: config), for: .normal)
+        button.tintColor = .appSecondaryText
+        button.addTarget(self, action: #selector(searchCancelTapped), for: .touchUpInside)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.isHidden = true
+        button.accessibilityLabel = "検索をクリア"
+        return button
     }()
 
     // MARK: - UI Components
@@ -75,20 +119,21 @@ class RecordListViewController: BaseRecordListViewController {
 
     // MARK: - Lifecycle
 
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        navigationItem.hidesSearchBarWhenScrolling = false
-    }
-
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        navigationItem.hidesSearchBarWhenScrolling = true
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        searchTextField.resignFirstResponder()
     }
 
     // MARK: - Setup
 
     override func setupAdditionalUI() {
         setupNavigationBar()
+
+        additionalSafeAreaInsets.top = searchBarHeight
+        view.addSubview(searchBarWrapperView)
+        searchBarWrapperView.addSubview(searchTextField)
+        searchBarWrapperView.addSubview(searchCancelButton)
+        searchBarWrapperView.addSubview(searchBarSeparator)
 
         view.addSubview(fabButton)
         fabButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
@@ -101,19 +146,51 @@ class RecordListViewController: BaseRecordListViewController {
 
     override func setupAdditionalConstraints() {
         NSLayoutConstraint.activate([
+            searchBarWrapperView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: -searchBarHeight),
+            searchBarWrapperView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            searchBarWrapperView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            searchBarWrapperView.heightAnchor.constraint(equalToConstant: searchBarHeight),
+
+            searchTextField.leadingAnchor.constraint(equalTo: searchBarWrapperView.leadingAnchor, constant: 16),
+            searchTextField.centerYAnchor.constraint(equalTo: searchBarWrapperView.centerYAnchor),
+            searchTextField.heightAnchor.constraint(equalToConstant: 36),
+
+            searchCancelButton.trailingAnchor.constraint(equalTo: searchBarWrapperView.trailingAnchor, constant: -16),
+            searchCancelButton.centerYAnchor.constraint(equalTo: searchBarWrapperView.centerYAnchor),
+
+            searchBarSeparator.leadingAnchor.constraint(equalTo: searchBarWrapperView.leadingAnchor),
+            searchBarSeparator.trailingAnchor.constraint(equalTo: searchBarWrapperView.trailingAnchor),
+            searchBarSeparator.bottomAnchor.constraint(equalTo: searchBarWrapperView.bottomAnchor),
+            searchBarSeparator.heightAnchor.constraint(equalToConstant: 1 / UIScreen.main.scale),
+
             fabButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             fabButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
             fabButton.widthAnchor.constraint(equalToConstant: 56),
             fabButton.heightAnchor.constraint(equalToConstant: 56)
         ])
+
+        // デフォルト: テキストフィールドは右端まで広がる
+        searchFieldTrailingToWrapper = searchTextField.trailingAnchor.constraint(equalTo: searchBarWrapperView.trailingAnchor, constant: -16)
+        searchFieldTrailingToCancel = searchTextField.trailingAnchor.constraint(equalTo: searchCancelButton.leadingAnchor, constant: -8)
+        searchFieldTrailingToWrapper.isActive = true
     }
 
     private func setupNavigationBar() {
         title = "記録"
         navigationItem.largeTitleDisplayMode = .never
 
-        navigationItem.searchController = searchController
-        navigationItem.hidesSearchBarWhenScrolling = true
+        // 検索バーWrapperViewと一体化して見せるためナビバー下端のボーダーを消す
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = .white
+        appearance.titleTextAttributes = [
+            .font: UIFont.appNavigationTitle,
+            .foregroundColor: UIColor.appText
+        ]
+        appearance.shadowColor = .clear
+        navigationItem.standardAppearance = appearance
+        navigationItem.scrollEdgeAppearance = appearance
+        navigationItem.compactAppearance = appearance
 
         // 種類フィルター
         let typeFilterButton = UIBarButtonItem(
@@ -150,6 +227,34 @@ class RecordListViewController: BaseRecordListViewController {
 
         collectionView.reloadData()
         updateEmptyState()
+    }
+
+    // MARK: - Search Actions
+
+    @objc private func searchTextChanged() {
+        searchText = searchTextField.text ?? ""
+        searchDebounceTimer?.invalidate()
+        searchDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
+            self?.refreshData()
+        }
+    }
+
+    @objc private func searchCancelTapped() {
+        searchTextField.text = ""
+        searchTextField.resignFirstResponder()
+        searchText = ""
+        setCancelButtonVisible(false)
+        refreshData()
+    }
+
+    private func setCancelButtonVisible(_ visible: Bool) {
+        searchFieldTrailingToWrapper.isActive = !visible
+        searchFieldTrailingToCancel.isActive = visible
+        UIView.animate(withDuration: 0.25) {
+            self.searchCancelButton.isHidden = !visible
+            self.searchCancelButton.alpha = visible ? 1 : 0
+            self.searchBarWrapperView.layoutIfNeeded()
+        }
     }
 
     // MARK: - Actions
@@ -273,15 +378,22 @@ class RecordListViewController: BaseRecordListViewController {
     }
 }
 
-// MARK: - UISearchResultsUpdating
+// MARK: - UITextFieldDelegate
 
-extension RecordListViewController: UISearchResultsUpdating {
+extension RecordListViewController: UITextFieldDelegate {
 
-    func updateSearchResults(for searchController: UISearchController) {
-        searchText = searchController.searchBar.text ?? ""
-        searchDebounceTimer?.invalidate()
-        searchDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
-            self?.refreshData()
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        setCancelButtonVisible(true)
+    }
+
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        if textField.text?.isEmpty ?? true {
+            setCancelButtonVisible(false)
         }
+    }
+
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
     }
 }
