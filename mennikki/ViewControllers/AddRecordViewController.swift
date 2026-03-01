@@ -7,6 +7,7 @@
 
 import UIKit
 import PhotosUI
+import StoreKit
 
 /// 新規記録・編集画面
 class AddRecordViewController: UIViewController {
@@ -625,6 +626,15 @@ class AddRecordViewController: UIViewController {
                 }
 
                 self.showSuccessAnimation()
+
+                // 3件目の新規記録保存時にストアレビューを依頼（表示頻度はOS側で制御）
+                if self.recordToEdit == nil {
+                    let count = CoreDataManager.shared.fetchAllRecords().count
+                    if count == 3, let scene = self.view.window?.windowScene {
+                        SKStoreReviewController.requestReview(in: scene)
+                    }
+                }
+
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                     self?.dismiss(animated: true)
                 }
