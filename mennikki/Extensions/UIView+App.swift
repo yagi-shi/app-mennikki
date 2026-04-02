@@ -8,7 +8,7 @@
 import UIKit
 
 extension UIView {
-    /// Duolingo風のカードシャドウを適用
+    /// カードシャドウを適用
     func applyCardShadow(radius: CGFloat = 10, opacity: Float = 0.12, offsetY: CGFloat = 4) {
         layer.shadowColor = UIColor(red: 44/255, green: 62/255, blue: 80/255, alpha: 1).cgColor
         layer.shadowOpacity = opacity
@@ -56,11 +56,11 @@ extension UIView {
 }
 
 extension UIColor {
-    /// RamenTypeに対応したカラー（Duolingo風の鮮やかな色）
+    /// RamenTypeに対応したカラー
     static func colorForRamenType(_ type: RamenType) -> UIColor {
         switch type {
         case .shoyu:    return UIColor(red: 212/255, green: 133/255, blue: 42/255,  alpha: 1) // amber
-        case .shio:     return UIColor(red: 28/255,  green: 176/255, blue: 246/255, alpha: 1) // Duolingo blue
+        case .shio:     return UIColor(red: 28/255,  green: 176/255, blue: 246/255, alpha: 1) // blue
         case .miso:     return UIColor(red: 245/255, green: 166/255, blue: 35/255,  alpha: 1) // yellow-amber
         case .tonkotsu: return UIColor(red: 240/255, green: 128/255, blue: 128/255, alpha: 1) // light coral
         case .niboshi:  return UIColor(red: 70/255,  green: 100/255, blue: 150/255, alpha: 1) // dark navy

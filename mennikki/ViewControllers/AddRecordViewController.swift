@@ -176,7 +176,7 @@ class AddRecordViewController: UIViewController {
         return iv
     }()
 
-    // Duolingo風 3D 保存ボタン（画面下部固定）
+    // 3D 保存ボタン（画面下部固定）
     private let saveActionButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("保存する", for: .normal)
@@ -184,7 +184,7 @@ class AddRecordViewController: UIViewController {
         button.setTitleColor(.white, for: .normal)
         button.backgroundColor = .appSuccess
         button.layer.cornerRadius = 16
-        // Duolingo 3D ハードシャドウ
+        // 3D ハードシャドウ
         button.layer.shadowColor = UIColor(red: 50/255, green: 140/255, blue: 0/255, alpha: 1).cgColor
         button.layer.shadowOpacity = 1.0
         button.layer.shadowRadius = 0
@@ -289,7 +289,7 @@ class AddRecordViewController: UIViewController {
             // チップスクロールビュー高さ
             ramenTypeScrollView.heightAnchor.constraint(equalToConstant: 44),
 
-            // Duolingo風 保存ボタン（画面下部固定）
+            // 保存ボタン（画面下部固定）
             saveActionButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             saveActionButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             saveActionButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12),
@@ -304,7 +304,7 @@ class AddRecordViewController: UIViewController {
         prefectureButton.addTarget(self, action: #selector(prefectureButtonTapped), for: .touchUpInside)
         photoButton.addTarget(self, action: #selector(photoButtonTapped), for: .touchUpInside)
 
-        // 保存ボタン: Duolingo 3D 押し込みアニメーション
+        // 保存ボタン: 3D 押し込みアニメーション
         saveActionButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
         saveActionButton.addTarget(self, action: #selector(saveButtonDown), for: .touchDown)
         saveActionButton.addTarget(self, action: #selector(saveButtonUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])

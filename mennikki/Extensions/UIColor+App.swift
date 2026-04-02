@@ -8,9 +8,9 @@
 import UIKit
 
 extension UIColor {
-    static let appPrimary    = UIColor(red: 255/255, green: 75/255,  blue: 75/255,  alpha: 1)  // Duolingo red
-    static let appSecondary  = UIColor(red: 28/255,  green: 176/255, blue: 246/255, alpha: 1)  // Duolingo blue
-    static let appSuccess    = UIColor(red: 88/255,  green: 204/255, blue: 2/255,   alpha: 1)  // Duolingo green
+    static let appPrimary    = UIColor(red: 255/255, green: 75/255,  blue: 75/255,  alpha: 1)  // red
+    static let appSecondary  = UIColor(red: 28/255,  green: 176/255, blue: 246/255, alpha: 1)  // blue
+    static let appSuccess    = UIColor(red: 88/255,  green: 204/255, blue: 2/255,   alpha: 1)  // green
     static let appBackground = UIColor(red: 247/255, green: 247/255, blue: 247/255, alpha: 1)
     static let appCardBackground = UIColor.white
     static let appText       = UIColor(red: 60/255,  green: 60/255,  blue: 60/255,  alpha: 1)

@@ -6,13 +6,13 @@
 import UIKit
 
 extension UITabBar {
-    /// Duolingo風のスタイルを適用
+    /// アプリ共通のスタイルを適用
     func applyAppStyle() {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = .white
 
-        // Duolingo風: 上にハードなボーダーライン
+        // 上にハードなボーダーライン
         appearance.shadowColor = .appBorder
 
         // アイテムのフォントを Rounded に

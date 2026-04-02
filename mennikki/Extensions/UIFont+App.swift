@@ -7,7 +7,7 @@ import UIKit
 
 extension UIFont {
 
-    /// Duolingo風の丸み（Rounded）システムフォントを生成
+    /// 丸み（Rounded）システムフォントを生成
     static func rounded(ofSize size: CGFloat, weight: UIFont.Weight) -> UIFont {
         let systemFont = UIFont.systemFont(ofSize: size, weight: weight)
         guard let descriptor = systemFont.fontDescriptor.withDesign(.rounded) else {

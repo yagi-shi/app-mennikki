@@ -9,7 +9,7 @@ import os
 
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.mennikki", category: "RecordDetail")
 
-/// 記録詳細画面（Duolingo風クリーンレイアウト）
+/// 記録詳細画面
 /// - 通常の白いナビバー（透明overlay廃止）
 /// - 上部: 種類カラー or 写真（固定高さ220pt）
 /// - 下部: 白背景の情報エリア
@@ -132,7 +132,7 @@ class RecordDetailViewController: UIViewController {
         return v
     }()
 
-    // Duolingo風区切り線
+    // 区切り線
     private func makeDivider() -> UIView {
         let v = UIView()
         v.backgroundColor = .appBorder

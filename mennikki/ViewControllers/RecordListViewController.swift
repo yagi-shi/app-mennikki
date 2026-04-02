@@ -76,7 +76,7 @@ class RecordListViewController: BaseRecordListViewController {
 
     // MARK: - UI Components
 
-    // Floating Action Button（Duolingo 3D押し込みスタイル）
+    // Floating Action Button（3D押し込みスタイル）
     private let fabButton: UIButton = {
         let button = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .bold)
@@ -84,7 +84,7 @@ class RecordListViewController: BaseRecordListViewController {
         button.tintColor = .white
         button.backgroundColor = .appPrimary
         button.layer.cornerRadius = 28
-        // Duolingo 3D: ハードシャドウ（ぼかしなし、暗めの赤を底辺に）
+        // 3D ハードシャドウ（ぼかしなし、暗めの赤を底辺に）
         button.layer.shadowColor = UIColor(red: 180/255, green: 40/255, blue: 40/255, alpha: 1).cgColor
         button.layer.shadowOpacity = 1.0
         button.layer.shadowRadius = 0

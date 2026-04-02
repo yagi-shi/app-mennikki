@@ -7,7 +7,7 @@ UITabBarControllerとUINavigationControllerを使用した基本的な画面構�
 
 ### 1. UITabBarControllerの設定
 - SceneDelegateでrootViewControllerとして設定
-- `applyAppStyle()` によるDuolingo風カスタマイズ
+- `applyAppStyle()` によるカスタマイズ
   - 背景色: 白（opaque）
   - 選択時tintColor: appPrimary
   - 未選択時tintColor: appSecondaryText
@@ -56,6 +56,6 @@ UITabBarControllerとUINavigationControllerを使用した基本的な画面構�
 - 002_デザインシステム構築
 
 ## 完了条件
-- タブバーとナビゲーションバーがDuolingo風にカスタマイズされている
+- タブバーとナビゲーションバーがアプリのデザインシステムに沿ってカスタマイズされている
 - 2つのタブ間で切り替えができる
 - 各タブにナビゲーションバーが表示されている

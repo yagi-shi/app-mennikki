@@ -10,10 +10,10 @@ import os
 
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.mennikki", category: "RecordCell")
 
-/// Duolingo風ラーメン記録カード
+/// ラーメン記録カード
 /// - 上半分: ラーメン種類カラーの背景（写真がある場合は写真）
 /// - 下半分: 白背景、店名・種類タグ・評価・日付
-/// - Duolingo の「押し込み」3Dシャドウ効果
+/// - 「押し込み」3Dシャドウ効果
 class RecordCell: UICollectionViewCell {
 
     static let reuseIdentifier = "RecordCell"
@@ -130,14 +130,14 @@ class RecordCell: UICollectionViewCell {
         contentView.layer.cornerRadius = 16
         contentView.layer.masksToBounds = true
 
-        // セル本体: Duolingo の「押し込み」ハードシャドウ
+        // セル本体: 「押し込み」ハードシャドウ
         layer.cornerRadius = 16
         layer.masksToBounds = false
         layer.shadowColor = UIColor.appBorder.cgColor
         layer.shadowOpacity = 1.0
         layer.shadowRadius = 0          // ぼかしなし = ハードシャドウ
         layer.shadowOffset = CGSize(width: 0, height: 5)
-        // カードのハードボーダー（Duolingo風の立体感）
+        // カードのハードボーダー（立体感）
         contentView.layer.borderWidth = 2
         contentView.layer.borderColor = UIColor.appCardBorder.cgColor
 
@@ -250,7 +250,7 @@ class RecordCell: UICollectionViewCell {
             let filled = i < Int(record.rating)
             star.image = UIImage(systemName: filled ? "star.fill" : "star", withConfiguration: cfg)
             star.tintColor = filled
-                ? UIColor(red: 88/255, green: 204/255, blue: 2/255, alpha: 1)   // Duolingo green
+                ? UIColor(red: 88/255, green: 204/255, blue: 2/255, alpha: 1)   // green
                 : UIColor(red: 220/255, green: 220/255, blue: 220/255, alpha: 1)
         }
         starsStack.isHidden = record.rating == 0
@@ -336,12 +336,12 @@ class RecordCell: UICollectionViewCell {
         return UIImage(cgImage: cgImage)
     }
 
-    // MARK: - Duolingo 押し込みアニメーション
+    // MARK: - 3D押し込みアニメーション
 
     override var isHighlighted: Bool {
         didSet {
             UIView.animate(withDuration: 0.08, delay: 0, options: [.allowUserInteraction, .beginFromCurrentState]) {
-                // Duolingo: 押すとカードが 5px 下にずれ、シャドウが消える
+                // 押すとカードが 5px 下にずれ、シャドウが消える
                 self.transform = self.isHighlighted
                     ? CGAffineTransform(translationX: 0, y: 5)
                     : .identity

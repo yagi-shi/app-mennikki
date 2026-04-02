@@ -6,7 +6,7 @@
 import UIKit
 
 extension UINavigationBar {
-    /// Duolingo風のスタイルを適用
+    /// アプリ共通のスタイルを適用
     func applyAppStyle() {
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
@@ -24,7 +24,7 @@ extension UINavigationBar {
             .foregroundColor: UIColor.appText
         ]
 
-        // Duolingo風: 下にうっすらボーダー（ハードシャドウ）
+        // 下にうっすらボーダー（ハードシャドウ）
         appearance.shadowColor = .appBorder
 
         standardAppearance = appearance
