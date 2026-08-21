@@ -141,3 +141,9 @@ mennikki/
 - **Xcode** を使用。`PBXFileSystemSynchronizedRootGroup` によりファイルが自動追加されるため、pbxprojの手動編集は不要
 - **Deployment Target は iOS 17.0**（Swift 5.10 + Xcode 16.2 で `_swift_task_deinitOnExecutor` リンクエラーが発生するため iOS 15 から変更）
 - `UIButton.contentEdgeInsets` / `titleEdgeInsets` / `imageEdgeInsets` は iOS 15 deprecated。`UIButton.Configuration` または `NSString.size(withAttributes:)` で代替
+
+## issue駆動開発のルール
+- 作業前に必ず対応するissueを確認する（なければ作る）
+- ブランチ名は `feature/#<issue番号>-<英語の短い説明>`
+- コミットメッセージ末尾に `refs #<issue番号>`
+- PR本文に `Closes #<issue番号>` を含める
