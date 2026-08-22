@@ -80,6 +80,7 @@ class AddRecordViewController: UIViewController {
         let dp = UIDatePicker()
         dp.datePickerMode = .date
         dp.preferredDatePickerStyle = .inline
+        dp.locale = Locale(identifier: "ja_JP")
         dp.maximumDate = Date()
         dp.date = Date()
         dp.backgroundColor = .white
