@@ -245,7 +245,7 @@ class AddRecordViewController: UIViewController {
         costTextField.delegate = self
 
         // アクセシビリティ
-        storeNameTextField.accessibilityLabel = "店舗名、必須"
+        storeNameTextField.accessibilityLabel = "店舗名"
         costTextField.accessibilityLabel = "費用"
         commentTextView.accessibilityLabel = "コメント"
         photoButton.accessibilityLabel = "写真を選択"
