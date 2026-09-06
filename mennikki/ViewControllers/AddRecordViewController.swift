@@ -80,6 +80,7 @@ class AddRecordViewController: UIViewController {
         let dp = UIDatePicker()
         dp.datePickerMode = .date
         dp.preferredDatePickerStyle = .inline
+        dp.locale = Locale(identifier: "ja_JP")
         dp.maximumDate = Date()
         dp.date = Date()
         dp.backgroundColor = .white
@@ -230,12 +231,12 @@ class AddRecordViewController: UIViewController {
         view.addSubview(scrollView)
         scrollView.addSubview(contentStackView)
 
-        contentStackView.addArrangedSubview(makeSectionView(title: "店舗名", content: storeNameTextField))
-        contentStackView.addArrangedSubview(makeSectionView(title: "ラーメンの種類", content: ramenTypeScrollView))
+        contentStackView.addArrangedSubview(makeSectionView(title: "店舗名", content: storeNameTextField, isRequired: true))
+        contentStackView.addArrangedSubview(makeSectionView(title: "ラーメンの種類", content: ramenTypeScrollView, isRequired: true))
         contentStackView.addArrangedSubview(makeSectionView(title: "都道府県", content: prefectureButton))
         contentStackView.addArrangedSubview(makeSectionView(title: "訪問日", content: visitDatePicker))
         contentStackView.addArrangedSubview(makeSectionView(title: "費用", content: costTextField))
-        contentStackView.addArrangedSubview(makeSectionView(title: "評価", content: starRatingView))
+        contentStackView.addArrangedSubview(makeSectionView(title: "評価", content: starRatingView, isRequired: true))
         contentStackView.addArrangedSubview(makeSectionView(title: "コメント", content: commentTextView))
         contentStackView.addArrangedSubview(makeSectionView(title: "写真", content: makePhotoSection()))
 
@@ -410,12 +411,12 @@ class AddRecordViewController: UIViewController {
 
     // MARK: - Helper Methods
 
-    private func makeSectionView(title: String, content: UIView) -> UIView {
+    private func makeSectionView(title: String, content: UIView, isRequired: Bool = false) -> UIView {
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
 
         let titleLabel = UILabel()
-        let attrString = NSAttributedString(
+        let attrString = NSMutableAttributedString(
             string: title.uppercased(),
             attributes: [
                 .font: UIFont.rounded(ofSize: 12, weight: .heavy),
@@ -423,7 +424,18 @@ class AddRecordViewController: UIViewController {
                 .kern: 1.5
             ]
         )
+        if isRequired {
+            attrString.append(NSAttributedString(
+                string: " ＊",
+                attributes: [
+                    .font: UIFont.rounded(ofSize: 12, weight: .heavy),
+                    .foregroundColor: UIColor.appPrimary
+                ]
+            ))
+        }
         titleLabel.attributedText = attrString
+        titleLabel.accessibilityLabel = isRequired ? "\(title)、必須" : title
+        titleLabel.isAccessibilityElement = true
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
         container.addSubview(titleLabel)
