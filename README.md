@@ -32,7 +32,7 @@
 店名やラーメンの種類はチップ形式で選択でき、訪問日はカレンダーから直感的に選べます。
 
 <p align="center">
-  <img src="docs/screenshots/新規記録画面.png" alt="新規記録画面" width="260">
+  <img src="docs/50_readme-screenshots/01_新規記録画面.png" alt="新規記録画面" width="260">
 </p>
 
 ### 記録を一覧で見る
@@ -42,7 +42,7 @@
 カラフルなカードデザインで、ラーメンの種類ごとに色分けされています。右下の「+」ボタンからすぐに新しい記録を追加できます。
 
 <p align="center">
-  <img src="docs/screenshots/一覧画面.png" alt="記録一覧画面" width="260">
+  <img src="docs/50_readme-screenshots/02_一覧画面.png" alt="記録一覧画面" width="260">
 </p>
 
 ### 記録を探す
@@ -56,7 +56,7 @@
 記録をタップすると、写真・星評価・都道府県・訪問日・費用・コメントなど、記録の詳細を確認できます。お気に入り登録や編集・削除もこの画面から行えます。
 
 <p align="center">
-  <img src="docs/screenshots/記録詳細画面.png" alt="記録詳細画面" width="260">
+  <img src="docs/50_readme-screenshots/03_記録詳細画面.png" alt="記録詳細画面" width="260">
 </p>
 
 ### お気に入りに登録する
