@@ -142,11 +142,6 @@ mennikki/
 - **Deployment Target は iOS 17.0**（Swift 5.10 + Xcode 16.2 で `_swift_task_deinitOnExecutor` リンクエラーが発生するため iOS 15 から変更）
 - `UIButton.contentEdgeInsets` / `titleEdgeInsets` / `imageEdgeInsets` は iOS 15 deprecated。`UIButton.Configuration` または `NSString.size(withAttributes:)` で代替
 
-<!-- ## issue駆動開発のルール
-- 作業前に必ず対応するissueを確認する（なければ作る）
-- ブランチ名は `feature/#<issue番号>-<英語の短い説明>`
-- コミットメッセージ末尾に `refs #<issue番号>`
-- PR本文に `Closes #<issue番号>` を含める -->
 ## 開発フロー（必ずこの順で行う）
 1. 作業前に対応するissueを確認する（なければ作る）
 2. issueに受け入れ条件が「issueの書き方」の形式で書かれていることを確認する。
