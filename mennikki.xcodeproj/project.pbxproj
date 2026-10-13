@@ -6,8 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		B6D0B5BF307D505E00961767 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B639BC872F3569C100A7CB78 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B639BC8E2F3569C100A7CB78;
+			remoteInfo = mennikki;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		B639BC8F2F3569C100A7CB78 /* mennikki.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mennikki.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B6D0B5BB307D505E00961767 /* mennikkiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = mennikkiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -29,10 +40,22 @@
 			path = mennikki;
 			sourceTree = "<group>";
 		};
+		B6D0B5BC307D505E00961767 /* mennikkiTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = mennikkiTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		B639BC8C2F3569C100A7CB78 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B6D0B5B8307D505E00961767 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -46,6 +69,7 @@
 			isa = PBXGroup;
 			children = (
 				B639BC912F3569C100A7CB78 /* mennikki */,
+				B6D0B5BC307D505E00961767 /* mennikkiTests */,
 				B639BC902F3569C100A7CB78 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,6 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				B639BC8F2F3569C100A7CB78 /* mennikki.app */,
+				B6D0B5BB307D505E00961767 /* mennikkiTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -83,6 +108,29 @@
 			productReference = B639BC8F2F3569C100A7CB78 /* mennikki.app */;
 			productType = "com.apple.product-type.application";
 		};
+		B6D0B5BA307D505E00961767 /* mennikkiTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B6D0B5C3307D505F00961767 /* Build configuration list for PBXNativeTarget "mennikkiTests" */;
+			buildPhases = (
+				B6D0B5B7307D505E00961767 /* Sources */,
+				B6D0B5B8307D505E00961767 /* Frameworks */,
+				B6D0B5B9307D505E00961767 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B6D0B5C0307D505E00961767 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B6D0B5BC307D505E00961767 /* mennikkiTests */,
+			);
+			name = mennikkiTests;
+			packageProductDependencies = (
+			);
+			productName = mennikkiTests;
+			productReference = B6D0B5BB307D505E00961767 /* mennikkiTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -90,11 +138,15 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2600;
+				LastSwiftUpdateCheck = 2660;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					B639BC8E2F3569C100A7CB78 = {
 						CreatedOnToolsVersion = 26.0.1;
+					};
+					B6D0B5BA307D505E00961767 = {
+						CreatedOnToolsVersion = 26.6;
+						TestTargetID = B639BC8E2F3569C100A7CB78;
 					};
 				};
 			};
@@ -113,12 +165,20 @@
 			projectRoot = "";
 			targets = (
 				B639BC8E2F3569C100A7CB78 /* mennikki */,
+				B6D0B5BA307D505E00961767 /* mennikkiTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		B639BC8D2F3569C100A7CB78 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B6D0B5B9307D505E00961767 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -135,7 +195,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B6D0B5B7307D505E00961767 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B6D0B5C0307D505E00961767 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B639BC8E2F3569C100A7CB78 /* mennikki */;
+			targetProxy = B6D0B5BF307D505E00961767 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		B639BCA62F3569C200A7CB78 /* Debug */ = {
@@ -325,6 +400,50 @@
 			};
 			name = Release;
 		};
+		B6D0B5C1307D505E00961767 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZMGKDKRUW7;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = yagishi.mennikkiTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/mennikki.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/mennikki";
+			};
+			name = Debug;
+		};
+		B6D0B5C2307D505E00961767 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZMGKDKRUW7;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = yagishi.mennikkiTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/mennikki.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/mennikki";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -342,6 +461,15 @@
 			buildConfigurations = (
 				B639BCA62F3569C200A7CB78 /* Debug */,
 				B639BCA72F3569C200A7CB78 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B6D0B5C3307D505F00961767 /* Build configuration list for PBXNativeTarget "mennikkiTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B6D0B5C1307D505E00961767 /* Debug */,
+				B6D0B5C2307D505E00961767 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

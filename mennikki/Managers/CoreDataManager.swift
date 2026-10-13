@@ -16,24 +16,53 @@ class CoreDataManager {
 
     // MARK: - Singleton
 
-    static let shared = CoreDataManager()
+    static let shared = CoreDataManager(inMemory: false)
 
-    private init() {}
+    /// ストアをメモリ上に作るかどうか
+    private let inMemory: Bool
+
+    /// - Parameter inMemory: true の場合、ストアをメモリ上に作り、端末には保存しない（テスト用）。
+    ///   アプリ本体は `shared` を使う
+    init(inMemory: Bool) {
+        self.inMemory = inMemory
+    }
 
     // MARK: - Core Data Stack
+
+    /// データモデルの名前（ストアのファイル名にも使われる）
+    private static let modelName = "mennikki"
+
+    /// 全インスタンスで共有するデータモデル。
+    /// コンテナごとに読み込むと Record のエンティティ定義が重複し、Core Data が一意に特定できなくなる
+    private static let managedObjectModel: NSManagedObjectModel? = {
+        guard let url = Bundle(for: CoreDataManager.self).url(forResource: modelName, withExtension: "momd") else {
+            return nil
+        }
+        return NSManagedObjectModel(contentsOf: url)
+    }()
 
     /// ストアが正常に読み込まれたかどうか
     private var isStoreLoaded = false
 
     /// Persistent Container
     private lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "mennikki")
-        // 端末ロック中のデータアクセスを防止
+        let container: NSPersistentContainer
+        if let model = Self.managedObjectModel {
+            container = NSPersistentContainer(name: Self.modelName, managedObjectModel: model)
+        } else {
+            container = NSPersistentContainer(name: Self.modelName)
+        }
         let description = container.persistentStoreDescriptions.first
-        description?.setOption(
-            FileProtectionType.complete as NSObject,
-            forKey: NSPersistentStoreFileProtectionKey
-        )
+        if self.inMemory {
+            // 保存先を /dev/null にすると、SQLite ストアがメモリ上に作られる
+            description?.url = URL(fileURLWithPath: "/dev/null")
+        } else {
+            // 端末ロック中のデータアクセスを防止
+            description?.setOption(
+                FileProtectionType.complete as NSObject,
+                forKey: NSPersistentStoreFileProtectionKey
+            )
+        }
         container.loadPersistentStores { [weak self] _, error in
             if let error = error as NSError? {
                 logger.error("Persistent store load error: \(error.localizedDescription, privacy: .public)")
