@@ -23,6 +23,12 @@ class RecordCell: UICollectionViewCell {
     /// ダウンサンプリング済み画像のキャッシュ（全セルで共有）
     private static let imageCache = NSCache<NSString, UIImage>()
 
+    /// 記録のサムネイルのキャッシュを破棄する。写真を差し替えたときに呼ぶ
+    static func removeCachedImage(for record: Record) {
+        let cacheKey = record.objectID.uriRepresentation().absoluteString as NSString
+        imageCache.removeObject(forKey: cacheKey)
+    }
+
     /// 現在表示中のレコード ID（セル再利用時の画像すり替え防止用）
     private var currentRecordID: String?
 

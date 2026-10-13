@@ -19,6 +19,7 @@ class AddRecordViewController: UIViewController {
 
     private var selectedRamenType: RamenType?
     private var selectedPrefecture: Prefecture?
+    /// この画面で選んだ写真。選んでいなければ nil（編集時の保存済みの写真は含めない）
     private var selectedImage: UIImage?
 
     // ラーメン種類チップボタンを保持
@@ -592,21 +593,35 @@ class AddRecordViewController: UIViewController {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
-            var photoData: Data?
-            if let image = image {
-                let resized = self.resizeImage(image)
-                photoData = resized.jpegData(compressionQuality: 0.75)
-            } else if editMode, let existing = existingPhoto {
-                photoData = existing
+            // 写真を選び直していなければ、保存済みのデータをそのまま使う（再圧縮しない）
+            let photoResult = Result {
+                try RecordPhotoResolver.resolve(
+                    existingPhoto: existingPhoto,
+                    didPickNewPhoto: image != nil,
+                    encodeNewPhoto: {
+                        guard let image = image else { return nil }
+                        return self.resizeImage(image).jpegData(compressionQuality: 0.75)
+                    }
+                )
             }
 
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.view.isUserInteractionEnabled = true
 
+                // 写真を変換できなかった場合は保存しない（保存済みの写真を失わないため）
+                guard case .success(let photoData) = photoResult else {
+                    self.showAlert(title: "保存エラー", message: "写真を保存できる形式に変換できませんでした。別の写真を選んでください。")
+                    return
+                }
+
                 var saveSuccess = false
 
                 if editMode, let record = record {
+                    if image != nil {
+                        // 写真を差し替えるので、一覧に古いサムネイルが残らないようにする
+                        RecordCell.removeCachedImage(for: record)
+                    }
                     saveSuccess = CoreDataManager.shared.updateRecord(
                         record,
                         storeName: storeName,
@@ -703,6 +718,16 @@ class AddRecordViewController: UIViewController {
         }
     }
 
+    /// 写真のプレビューを表示する。
+    /// プレビューはタップを受け取らないので、下に重なっている photoButton が反応し、写真を選び直せる
+    private func showPhotoPreview(_ image: UIImage) {
+        photoImageView.image = image
+        photoImageView.isHidden = false
+        photoButton.setImage(nil, for: .normal)
+        photoButton.accessibilityLabel = "写真を変更"
+        photoButton.accessibilityHint = "ダブルタップして別の写真を選択"
+    }
+
     /// 長辺を maxDimension 以下にリサイズ（縦横比維持）
     /// UIGraphicsImageRenderer を使用（iOS 17+ 非推奨APIを回避）
     private func resizeImage(_ image: UIImage, maxDimension: CGFloat = 800) -> UIImage {
@@ -752,10 +777,10 @@ class AddRecordViewController: UIViewController {
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 guard let image = UIImage(data: photoData) else { return }
                 DispatchQueue.main.async {
-                    self?.selectedImage = image
-                    self?.photoImageView.image = image
-                    self?.photoImageView.isHidden = false
-                    self?.photoButton.isHidden = true
+                    // 読み込み中に写真を選び直していたら、選んだ写真の表示を上書きしない
+                    guard let self, self.selectedImage == nil else { return }
+                    // 表示するだけで selectedImage には入れない（保存時に再圧縮されないようにする）
+                    self.showPhotoPreview(image)
                 }
             }
         }
@@ -802,9 +827,7 @@ extension AddRecordViewController: PHPickerViewControllerDelegate {
                 DispatchQueue.main.async {
                     if let image = image as? UIImage {
                         self?.selectedImage = image
-                        self?.photoImageView.image = image
-                        self?.photoImageView.isHidden = false
-                        self?.photoButton.isHidden = true
+                        self?.showPhotoPreview(image)
                     }
                 }
             }
