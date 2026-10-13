@@ -5,11 +5,14 @@
 
 import Testing
 import Foundation
+import CoreData
 @testable import mennikki
 
-/// CoreDataManager のテスト。インメモリのストアを使い、端末上の実データには触れない
+/// CoreDataManager のテスト。記録の読み書きにはインメモリのストアを使い、端末上の実データには書き込まない
 @MainActor
 struct CoreDataManagerTests {
+
+    // MARK: - 記録の読み書き
 
     @Test("インメモリのストアで、記録の作成と取得ができる")
     func createAndFetchRecord() throws {
@@ -56,5 +59,38 @@ struct CoreDataManagerTests {
 
         #expect(first.fetchAllRecords().count == 1)
         #expect(second.fetchAllRecords().isEmpty)
+    }
+
+    // MARK: - ストアの保存先
+
+    @Test("アプリ本体のストアは、既定の場所の mennikki.sqlite に保存される SQLite ストアである")
+    func sharedStoreIsSQLiteFileAtDefaultLocation() throws {
+        let store = try sharedStore()
+        let expectedURL = NSPersistentContainer.defaultDirectoryURL().appendingPathComponent("mennikki.sqlite")
+
+        #expect(store.type == NSSQLiteStoreType)
+        #expect(store.url?.standardizedFileURL == expectedURL.standardizedFileURL)
+    }
+
+    @Test("アプリ本体のストアのファイル保護は complete である")
+    func sharedStoreUsesCompleteFileProtection() throws {
+        let store = try sharedStore()
+
+        #expect(store.options?[NSPersistentStoreFileProtectionKey] as? FileProtectionType == .complete)
+    }
+
+    @Test("インメモリのストアは、端末上のファイルを保存先にしない")
+    func inMemoryStoreDoesNotUseFileOnDevice() throws {
+        let manager = CoreDataManager(inMemory: true)
+        let store = try #require(manager.viewContext?.persistentStoreCoordinator?.persistentStores.first)
+
+        #expect(store.url?.path == "/dev/null")
+    }
+
+    // MARK: - Helper Methods
+
+    /// アプリ本体が使うストア。設定の確認だけに使い、書き込まない
+    private func sharedStore() throws -> NSPersistentStore {
+        try #require(CoreDataManager.shared.viewContext?.persistentStoreCoordinator?.persistentStores.first)
     }
 }
