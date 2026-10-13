@@ -618,6 +618,10 @@ class AddRecordViewController: UIViewController {
                 var saveSuccess = false
 
                 if editMode, let record = record {
+                    if image != nil {
+                        // 写真を差し替えるので、一覧に古いサムネイルが残らないようにする
+                        RecordCell.removeCachedImage(for: record)
+                    }
                     saveSuccess = CoreDataManager.shared.updateRecord(
                         record,
                         storeName: storeName,
@@ -714,6 +718,16 @@ class AddRecordViewController: UIViewController {
         }
     }
 
+    /// 写真のプレビューを表示する。
+    /// プレビューはタップを受け取らないので、下に重なっている photoButton が反応し、写真を選び直せる
+    private func showPhotoPreview(_ image: UIImage) {
+        photoImageView.image = image
+        photoImageView.isHidden = false
+        photoButton.setImage(nil, for: .normal)
+        photoButton.accessibilityLabel = "写真を変更"
+        photoButton.accessibilityHint = "ダブルタップして別の写真を選択"
+    }
+
     /// 長辺を maxDimension 以下にリサイズ（縦横比維持）
     /// UIGraphicsImageRenderer を使用（iOS 17+ 非推奨APIを回避）
     private func resizeImage(_ image: UIImage, maxDimension: CGFloat = 800) -> UIImage {
@@ -763,10 +777,10 @@ class AddRecordViewController: UIViewController {
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 guard let image = UIImage(data: photoData) else { return }
                 DispatchQueue.main.async {
+                    // 読み込み中に写真を選び直していたら、選んだ写真の表示を上書きしない
+                    guard let self, self.selectedImage == nil else { return }
                     // 表示するだけで selectedImage には入れない（保存時に再圧縮されないようにする）
-                    self?.photoImageView.image = image
-                    self?.photoImageView.isHidden = false
-                    self?.photoButton.isHidden = true
+                    self.showPhotoPreview(image)
                 }
             }
         }
@@ -813,9 +827,7 @@ extension AddRecordViewController: PHPickerViewControllerDelegate {
                 DispatchQueue.main.async {
                     if let image = image as? UIImage {
                         self?.selectedImage = image
-                        self?.photoImageView.image = image
-                        self?.photoImageView.isHidden = false
-                        self?.photoButton.isHidden = true
+                        self?.showPhotoPreview(image)
                     }
                 }
             }
