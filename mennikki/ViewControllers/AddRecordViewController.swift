@@ -19,6 +19,7 @@ class AddRecordViewController: UIViewController {
 
     private var selectedRamenType: RamenType?
     private var selectedPrefecture: Prefecture?
+    /// この画面で選んだ写真。選んでいなければ nil（編集時の保存済みの写真は含めない）
     private var selectedImage: UIImage?
 
     // ラーメン種類チップボタンを保持
@@ -592,17 +593,27 @@ class AddRecordViewController: UIViewController {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
-            var photoData: Data?
-            if let image = image {
-                let resized = self.resizeImage(image)
-                photoData = resized.jpegData(compressionQuality: 0.75)
-            } else if editMode, let existing = existingPhoto {
-                photoData = existing
+            // 写真を選び直していなければ、保存済みのデータをそのまま使う（再圧縮しない）
+            let photoResult = Result {
+                try RecordPhotoResolver.resolve(
+                    existingPhoto: existingPhoto,
+                    didPickNewPhoto: image != nil,
+                    encodeNewPhoto: {
+                        guard let image = image else { return nil }
+                        return self.resizeImage(image).jpegData(compressionQuality: 0.75)
+                    }
+                )
             }
 
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.view.isUserInteractionEnabled = true
+
+                // 写真を変換できなかった場合は保存しない（保存済みの写真を失わないため）
+                guard case .success(let photoData) = photoResult else {
+                    self.showAlert(title: "保存エラー", message: "写真を保存できる形式に変換できませんでした。別の写真を選んでください。")
+                    return
+                }
 
                 var saveSuccess = false
 
@@ -752,7 +763,7 @@ class AddRecordViewController: UIViewController {
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 guard let image = UIImage(data: photoData) else { return }
                 DispatchQueue.main.async {
-                    self?.selectedImage = image
+                    // 表示するだけで selectedImage には入れない（保存時に再圧縮されないようにする）
                     self?.photoImageView.image = image
                     self?.photoImageView.isHidden = false
                     self?.photoButton.isHidden = true
