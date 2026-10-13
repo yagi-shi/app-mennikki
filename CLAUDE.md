@@ -181,6 +181,12 @@ mennikki/
 - テストは `mennikkiTests` ターゲットに、`<対象クラス名>Tests.swift` の名前で作る
 - ViewControllerにロジックを追加しない。UIKit非依存のクラスに切り出してテストする
 - UIのみの変更は自動テスト不要（代わりに手動確認項目を挙げる）
+- テストでは `CoreDataManager(inMemory: true)` でインメモリのストアを作って使い、`CoreDataManager.shared` には書き込まない
+- テストは次のコマンドで実行する（シミュレータは手元にあるものを指定する）
+
+```sh
+xcodebuild test -project mennikki.xcodeproj -scheme mennikki -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5'
+```
 
 ## 実機での手動確認が必要なもの
 以下に該当する変更は、自動テストだけで完了扱いにしない
