@@ -196,6 +196,8 @@ xcodebuild test -project mennikki.xcodeproj -scheme mennikki -destination 'platf
 - バックグラウンド復帰、アプリ再起動後のデータ保持
 - パフォーマンス（体感速度、メモリ）
 
+VoiceOver の読み上げは、実機での確認の対象外とする（読み上げのラベルは「5. アクセシビリティ」のとおりコードで設定する）
+
 伝える際は「何を・どの手順で・何が期待結果か」を箇条書きで示す
 
 ## 指示者への質問
