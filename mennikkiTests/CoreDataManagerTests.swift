@@ -61,6 +61,35 @@ struct CoreDataManagerTests {
         #expect(second.fetchAllRecords().isEmpty)
     }
 
+    // MARK: - 登録済みの種類
+
+    @Test("登録済みの記録に含まれる種類だけを、重複なく取得できる")
+    func fetchRegisteredRamenTypesWithoutDuplicates() {
+        let manager = CoreDataManager(inMemory: true)
+        manager.createRecord(storeName: "一軒目", ramenType: .shoyu, visitDate: Date())
+        manager.createRecord(storeName: "二軒目", ramenType: .shoyu, visitDate: Date())
+        manager.createRecord(storeName: "三軒目", ramenType: .miso, visitDate: Date())
+
+        #expect(manager.fetchRegisteredRamenTypes() == [.shoyu, .miso])
+    }
+
+    @Test("記録が 0 件のときは、登録済みの種類の取得結果が空になる")
+    func fetchRegisteredRamenTypesWhenEmpty() {
+        let manager = CoreDataManager(inMemory: true)
+
+        #expect(manager.fetchRegisteredRamenTypes().isEmpty)
+    }
+
+    @Test("取得した種類の並び順が、RamenType の定義順になっている")
+    func fetchRegisteredRamenTypesInDefinitionOrder() {
+        let manager = CoreDataManager(inMemory: true)
+        manager.createRecord(storeName: "一軒目", ramenType: .iekei, visitDate: Date())
+        manager.createRecord(storeName: "二軒目", ramenType: .shoyu, visitDate: Date())
+        manager.createRecord(storeName: "三軒目", ramenType: .tonkotsu, visitDate: Date())
+
+        #expect(manager.fetchRegisteredRamenTypes() == [.shoyu, .tonkotsu, .iekei])
+    }
+
     // MARK: - ストアの保存先
 
     @Test("アプリ本体のストアは、既定の場所の mennikki.sqlite に保存される SQLite ストアである")
