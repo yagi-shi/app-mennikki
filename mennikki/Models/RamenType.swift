@@ -18,4 +18,11 @@ enum RamenType: String, CaseIterable {
     case jiro     = "二郎系"
     case iekei    = "家系"
     case other    = "その他"
+
+    /// 種類フィルターの選択肢。
+    /// 登録済みの種類に、選んでいる種類（記録がなくなったものを含む）を加え、定義順に並べる
+    static func filterOptions(registered: [RamenType], selected: [RamenType]) -> [RamenType] {
+        let included = Set(registered).union(selected)
+        return allCases.filter { included.contains($0) }
+    }
 }

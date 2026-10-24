@@ -285,6 +285,23 @@ class CoreDataManager {
         }
     }
 
+    /// 記録済みのラーメンの種類一覧を取得（軽量フェッチ）。RamenType の定義順に並べる
+    func fetchRegisteredRamenTypes() -> [RamenType] {
+        let request = NSFetchRequest<NSDictionary>(entityName: "Record")
+        request.resultType = .dictionaryResultType
+        request.propertiesToFetch = ["ramenType"]
+        request.returnsDistinctResults = true
+
+        do {
+            let results = try viewContext?.fetch(request) ?? []
+            let registered = Set(results.compactMap { ($0["ramenType"] as? String).flatMap(RamenType.init(rawValue:)) })
+            return RamenType.allCases.filter { registered.contains($0) }
+        } catch {
+            logger.error("Error fetching registered ramen types: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
     // MARK: - Helper Methods
 
     /// 未保存の変更があれば保存する（バックグラウンド移行時など外部から呼ぶ用）
