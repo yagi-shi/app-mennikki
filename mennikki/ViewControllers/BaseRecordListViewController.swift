@@ -162,6 +162,9 @@ class BaseRecordListViewController: UIViewController {
     // MARK: - Helper Methods
 
     func updateEmptyState() {
+        // 絞り込みの有無で文言が変わる画面があるため、表示を更新するたびに設定し直す
+        emptyStateLabel.text = emptyStateTitleText
+        emptyStateSubLabel.text = emptyStateSubTitleText
         let isEmpty = fetchedResultsController?.fetchedObjects?.isEmpty ?? true
         emptyStateStackView.isHidden = !isEmpty
         collectionView.isHidden = isEmpty
