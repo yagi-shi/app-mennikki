@@ -282,9 +282,26 @@ class RecordListViewController: BaseRecordListViewController {
     }
 
     @objc private func filterButtonTapped() {
+        // 記録に存在する種類と、選んでいる種類（記録がなくなったものを含む）だけを表示（軽量フェッチ）
+        let options = RamenType.filterOptions(
+            registered: CoreDataManager.shared.fetchRegisteredRamenTypes(),
+            selected: selectedRamenTypes
+        )
+
+        guard !options.isEmpty else {
+            let alert = UIAlertController(
+                title: "ラーメンの種類でフィルター",
+                message: "記録がありません",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+            return
+        }
+
         let alert = UIAlertController(title: "ラーメンの種類でフィルター", message: "選択してください", preferredStyle: .actionSheet)
 
-        for type in RamenType.allCases {
+        for type in options {
             let isSelected = selectedRamenTypes.contains(type)
             let title = isSelected ? "✓ \(type.rawValue)" : type.rawValue
 
