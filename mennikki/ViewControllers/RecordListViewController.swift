@@ -19,6 +19,16 @@ class RecordListViewController: BaseRecordListViewController {
     private var selectedRamenTypes: [RamenType] = []
     private var selectedPrefecture: Prefecture?
     private var searchText: String = ""
+
+    /// 現在の絞り込み条件
+    private var currentFilter: RecordListFilter {
+        RecordListFilter(searchText: searchText, selectedRamenTypes: selectedRamenTypes, selectedPrefecture: selectedPrefecture)
+    }
+
+    // フィルターボタン（適用中かどうかで見た目を切り替える）
+    private var typeFilterButton: UIBarButtonItem?
+    private var prefFilterButton: UIBarButtonItem?
+
     private var searchDebounceTimer: Timer?
     private let searchBarHeight: CGFloat = 52
     private var searchFieldTrailingToWrapper: NSLayoutConstraint!
@@ -96,8 +106,13 @@ class RecordListViewController: BaseRecordListViewController {
     // MARK: - Base Class Configuration
 
     override var emptyStateIconName: String { "bowl.fill" }
-    override var emptyStateTitleText: String { "まだラーメンの記録がありません" }
-    override var emptyStateSubTitleText: String { "＋ボタンから最初の記録を追加しましょう！" }
+    // 絞り込みで 0 件のときに「記録が消えた」と誤解されないよう、文言を分ける
+    override var emptyStateTitleText: String {
+        currentFilter.isNarrowing ? "条件に合う記録がありません" : "まだラーメンの記録がありません"
+    }
+    override var emptyStateSubTitleText: String {
+        currentFilter.isNarrowing ? "検索やフィルターを解除すると、すべての記録が表示されます" : "＋ボタンから最初の記録を追加しましょう！"
+    }
 
     override func fetchPredicate() -> NSPredicate? {
         var predicates: [NSPredicate] = []
@@ -199,6 +214,7 @@ class RecordListViewController: BaseRecordListViewController {
             target: self,
             action: #selector(filterButtonTapped)
         )
+        typeFilterButton.accessibilityLabel = "種類でフィルター"
         // 都道府県フィルター
         let prefFilterButton = UIBarButtonItem(
             image: UIImage(systemName: "mappin.circle"),
@@ -206,7 +222,24 @@ class RecordListViewController: BaseRecordListViewController {
             target: self,
             action: #selector(prefectureFilterButtonTapped)
         )
+        prefFilterButton.accessibilityLabel = "都道府県でフィルター"
         navigationItem.rightBarButtonItems = [typeFilterButton, prefFilterButton]
+        self.typeFilterButton = typeFilterButton
+        self.prefFilterButton = prefFilterButton
+        updateFilterButtons()
+    }
+
+    /// 適用中のフィルターのアイコンを、塗りつぶしの赤色にする
+    private func updateFilterButtons() {
+        let filter = currentFilter
+        applyFilterAppearance(to: typeFilterButton, symbolName: "line.3.horizontal.decrease.circle", isActive: filter.isRamenTypeFilterActive)
+        applyFilterAppearance(to: prefFilterButton, symbolName: "mappin.circle", isActive: filter.isPrefectureFilterActive)
+    }
+
+    private func applyFilterAppearance(to button: UIBarButtonItem?, symbolName: String, isActive: Bool) {
+        button?.image = UIImage(systemName: isActive ? "\(symbolName).fill" : symbolName)
+        button?.tintColor = isActive ? .appPrimary : nil
+        button?.accessibilityValue = isActive ? "適用中" : nil
     }
 
     // MARK: - Refresh
@@ -227,6 +260,7 @@ class RecordListViewController: BaseRecordListViewController {
 
         collectionView.reloadData()
         updateEmptyState()
+        updateFilterButtons()
     }
 
     // MARK: - Search Actions
