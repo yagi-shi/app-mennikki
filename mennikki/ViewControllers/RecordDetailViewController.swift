@@ -96,7 +96,8 @@ class RecordDetailViewController: UIViewController {
         let l = UILabel()
         l.font = .appDetailTitle
         l.textColor = .appText
-        l.numberOfLines = 2
+        // 一覧のカードでは省略するため、詳細では全文を表示する
+        l.numberOfLines = 0
         l.translatesAutoresizingMaskIntoConstraints = false
         return l
     }()
