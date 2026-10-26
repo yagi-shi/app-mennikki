@@ -226,7 +226,8 @@ extension BaseRecordListViewController: UICollectionViewDelegateFlowLayout {
         let margins: CGFloat = 10 * 2
         let availableWidth = collectionView.bounds.width - margins - spacing
         let cellWidth = availableWidth / 2
-        let cellHeight = cellWidth * 1.0
+        // 店名 2 行と種類タグ・星が切れない高さにする
+        let cellHeight = RecordCell.height(forWidth: cellWidth)
         return CGSize(width: cellWidth, height: cellHeight)
     }
 }
