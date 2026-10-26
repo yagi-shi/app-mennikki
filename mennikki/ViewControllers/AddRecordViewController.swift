@@ -654,16 +654,17 @@ class AddRecordViewController: UIViewController {
 
                 self.showSuccessAnimation()
 
-                // 3件目の新規記録保存時にストアレビューを依頼（表示頻度はOS側で制御）
-                if self.recordToEdit == nil {
-                    let count = CoreDataManager.shared.fetchAllRecords().count
-                    if count == 3, let scene = self.view.window?.windowScene {
-                        SKStoreReviewController.requestReview(in: scene)
-                    }
-                }
+                // 新規登録で記録の総数が節目になったら、登録画面を閉じた後にストア評価を依頼する（表示の頻度は iOS が制御）
+                let shouldRequestReview = !editMode
+                    && ReviewRequestPolicy.shouldRequestReview(recordCount: CoreDataManager.shared.fetchAllRecords().count)
+                let scene = self.view.window?.windowScene
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                    self?.dismiss(animated: true)
+                    self?.dismiss(animated: true) {
+                        if shouldRequestReview, let scene {
+                            AppStore.requestReview(in: scene)
+                        }
+                    }
                 }
             }
         }
