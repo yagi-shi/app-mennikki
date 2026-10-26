@@ -88,7 +88,9 @@ class RecordCell: UICollectionViewCell {
         let l = UILabel()
         l.font = .appStoreName
         l.textColor = .appText
-        l.numberOfLines = 2
+        l.numberOfLines = RecordCell.storeNameMaxLines
+        // 高さが足りない場合は、種類タグではなく店名を縮めて省略する
+        l.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
         l.translatesAutoresizingMaskIntoConstraints = false
         return l
     }()
@@ -117,6 +119,49 @@ class RecordCell: UICollectionViewCell {
         return sv
     }()
 
+
+    // MARK: - Layout
+
+    /// 上エリア（写真）の高さの、カード幅に対する比率
+    private static let topAreaHeightRatio: CGFloat = 0.60
+    /// 下エリア（店名・種類タグ・星）の上下左右の余白
+    private static let bottomAreaPadding: CGFloat = 10
+    /// 店名と種類タグの間隔
+    private static let storeNameToTagSpacing: CGFloat = 6
+    /// 種類タグの、文字の上下の余白
+    private static let tagVerticalPadding: CGFloat = 3
+    /// 店名の最大行数（入りきらない分は末尾を「…」で省略）
+    private static let storeNameMaxLines = 2
+
+    /// 下エリアの高さのキャッシュ（文字サイズの設定ごと）
+    private static var cachedBottomAreaHeight: (category: UIContentSizeCategory, height: CGFloat)?
+
+    /// 幅に対するカードの高さ。店名が最大行数まで入り、種類タグと星が切れない高さにする（店名の長さでは変えない）
+    static func height(forWidth width: CGFloat) -> CGFloat {
+        ceil(width * topAreaHeightRatio + bottomAreaHeight())
+    }
+
+    private static func bottomAreaHeight() -> CGFloat {
+        let category = UIApplication.shared.preferredContentSizeCategory
+        if let cached = cachedBottomAreaHeight, cached.category == category {
+            return cached.height
+        }
+        // 日本語は代替フォントで描かれて行の高さが変わるため、実際の文字で測る
+        let storeNameHeight = measuredHeight(of: "ラーメンAg", font: .appStoreName, lines: storeNameMaxLines)
+        let tagHeight = measuredHeight(of: "醤油Ag", font: .appTag, lines: 1) + tagVerticalPadding * 2
+        let height = bottomAreaPadding + storeNameHeight + storeNameToTagSpacing + tagHeight + bottomAreaPadding
+        cachedBottomAreaHeight = (category, height)
+        return height
+    }
+
+    private static func measuredHeight(of sample: String, font: UIFont, lines: Int) -> CGFloat {
+        let label = UILabel()
+        label.font = font
+        label.numberOfLines = lines
+        label.text = Array(repeating: sample, count: lines).joined(separator: "\n")
+        let size = label.sizeThatFits(CGSize(width: CGFloat.greatestFiniteMagnitude, height: .greatestFiniteMagnitude))
+        return ceil(size.height)
+    }
 
     // MARK: - Init
 
@@ -169,11 +214,11 @@ class RecordCell: UICollectionViewCell {
 
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // 上エリア: セル高さの 48%
+            // 上エリア: カード幅の 60%（カードの高さが変わっても写真の大きさは変えない）
             topArea.topAnchor.constraint(equalTo: contentView.topAnchor),
             topArea.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             topArea.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            topArea.heightAnchor.constraint(equalTo: contentView.heightAnchor, multiplier: 0.60),
+            topArea.heightAnchor.constraint(equalTo: contentView.widthAnchor, multiplier: Self.topAreaHeightRatio),
 
             // 写真
             photoImageView.topAnchor.constraint(equalTo: topArea.topAnchor),
@@ -200,17 +245,18 @@ class RecordCell: UICollectionViewCell {
             favoriteIcon.heightAnchor.constraint(equalToConstant: 24),
 
             // 店名
-            storeNameLabel.topAnchor.constraint(equalTo: topArea.bottomAnchor, constant: 10),
-            storeNameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
-            storeNameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            storeNameLabel.topAnchor.constraint(equalTo: topArea.bottomAnchor, constant: Self.bottomAreaPadding),
+            storeNameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Self.bottomAreaPadding),
+            storeNameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -Self.bottomAreaPadding),
 
-            // 種類タグ（コンテナ）
-            typeTagContainer.topAnchor.constraint(equalTo: storeNameLabel.bottomAnchor, constant: 6),
-            typeTagContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            // 種類タグ（コンテナ）: カードの下端にそろえる
+            typeTagContainer.topAnchor.constraint(greaterThanOrEqualTo: storeNameLabel.bottomAnchor, constant: Self.storeNameToTagSpacing),
+            typeTagContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -Self.bottomAreaPadding),
+            typeTagContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: Self.bottomAreaPadding),
 
             // 種類タグ（ラベル：コンテナ内パディング）
-            typeTagLabel.topAnchor.constraint(equalTo: typeTagContainer.topAnchor, constant: 3),
-            typeTagLabel.bottomAnchor.constraint(equalTo: typeTagContainer.bottomAnchor, constant: -3),
+            typeTagLabel.topAnchor.constraint(equalTo: typeTagContainer.topAnchor, constant: Self.tagVerticalPadding),
+            typeTagLabel.bottomAnchor.constraint(equalTo: typeTagContainer.bottomAnchor, constant: -Self.tagVerticalPadding),
             typeTagLabel.leadingAnchor.constraint(equalTo: typeTagContainer.leadingAnchor, constant: 7),
             typeTagLabel.trailingAnchor.constraint(equalTo: typeTagContainer.trailingAnchor, constant: -7),
 
