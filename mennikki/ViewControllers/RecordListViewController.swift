@@ -87,13 +87,13 @@ class RecordListViewController: BaseRecordListViewController {
         return tf
     }()
     private lazy var searchCancelButton: UIButton = {
-        // 中の消去ボタン（塗りつぶしの丸に ×）と見分けられるよう、丸い背景に × の記号を濃い色で表示する
+        // 中の消去ボタン（塗りつぶしの丸に ×）と見分けられるよう、丸い背景に × の記号を、押せるものの色（フィルターのアイコンと同じ）で表示する
         let padding = Self.searchCancelButtonHitPadding
         var config = UIButton.Configuration.plain()
         config.image = UIImage(systemName: "xmark")
         config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(font: .appSearchField)
             .applying(UIImage.SymbolConfiguration(weight: .semibold))
-        config.baseForegroundColor = .appText
+        config.baseForegroundColor = .appPrimary
         config.background.backgroundColor = Self.searchFieldBackgroundColor
         config.background.backgroundInsets = NSDirectionalEdgeInsets(top: padding, leading: padding, bottom: padding, trailing: padding)
         config.background.cornerRadius = searchFieldHeight / 2
