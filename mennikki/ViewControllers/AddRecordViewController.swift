@@ -24,6 +24,14 @@ class AddRecordViewController: UIViewController {
 
     // ラーメン種類チップボタンを保持
     private var typeChipButtons: [UIButton] = []
+    /// 種類の選択ボタンの最低の高さ（文字が大きいときは、文字に合わせて高くする）
+    private static let chipMinHeight: CGFloat = 44
+    /// 種類の選択ボタンの、文字の上下の余白
+    private static let chipTextPadding: CGFloat = 10
+    private lazy var chipHeight: CGFloat = max(
+        Self.chipMinHeight,
+        ceil(UIFont.appChip.lineHeight) + Self.chipTextPadding * 2
+    )
 
     // MARK: - UI Components
 
@@ -289,7 +297,7 @@ class AddRecordViewController: UIViewController {
             photoImageView.heightAnchor.constraint(equalToConstant: 200),
 
             // チップスクロールビュー高さ
-            ramenTypeScrollView.heightAnchor.constraint(equalToConstant: 44),
+            ramenTypeScrollView.heightAnchor.constraint(equalToConstant: chipHeight),
 
             // 保存ボタン（画面下部固定）
             saveActionButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -369,14 +377,14 @@ class AddRecordViewController: UIViewController {
             AttributeContainer([.font: UIFont.appChip])
         }
         config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 14)
-        config.background.cornerRadius = 22
+        config.background.cornerRadius = chipHeight / 2
 
         let button = UIButton(configuration: config)
-        button.layer.cornerRadius = 22
+        button.layer.cornerRadius = chipHeight / 2
         button.layer.borderWidth = 2
         button.layer.borderColor = UIColor.clear.cgColor
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        button.heightAnchor.constraint(equalToConstant: chipHeight).isActive = true
 
         button.configurationUpdateHandler = { btn in
             var updated = btn.configuration ?? UIButton.Configuration.plain()

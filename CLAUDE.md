@@ -59,6 +59,7 @@
 - 詳細は `docs/10_design/04_デザインガイドライン.md` を参照
 - UIColor extension、UIFont extensionで定義されたスタイルを使用
 - フォントは `UIFont+App.swift` の定義を使い、その場でサイズを書かない（`UIFont.rounded(ofSize:weight:)` や `UIFont.systemFont(ofSize:)` を画面のコードで直接使わない）。新しい用途のフォントが必要なときは、先に定義を追加する
+- フォントの定義は、iOS の標準の文字サイズの段階（テキストスタイル）から `UIFont.rounded(_:weight:)` で作り、独自のサイズは作らない（例外はタブバーのみ）
 - 再利用可能なコンポーネントを作成（ボタン、カード、タグなど）
 
 ### 4. データ管理
