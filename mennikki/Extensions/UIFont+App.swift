@@ -71,4 +71,36 @@ extension UIFont {
         let font = rounded(ofSize: 12, weight: .bold)
         return UIFontMetrics(forTextStyle: .caption2).scaledFont(for: font)
     }
+
+    // MARK: - App Fonts（テキストサイズの設定に追従しない）
+
+    /// 記録一覧の検索欄（丸みのない標準の字体）
+    static var appSearchField: UIFont {
+        systemFont(ofSize: 16)
+    }
+
+    /// 記録画面の項目名（「店舗名」など）
+    static var appFormLabel: UIFont {
+        rounded(ofSize: 12, weight: .heavy)
+    }
+
+    /// 記録画面の種類の選択ボタン
+    static var appChip: UIFont {
+        rounded(ofSize: 13, weight: .bold)
+    }
+
+    /// 詳細画面の都道府県・訪問日・費用の値
+    static var appInfoValue: UIFont {
+        rounded(ofSize: 15, weight: .bold)
+    }
+
+    /// タブバーの項目（未選択）
+    static var appTabBarItem: UIFont {
+        rounded(ofSize: 10, weight: .semibold)
+    }
+
+    /// タブバーの項目（選択中）
+    static var appTabBarItemSelected: UIFont {
+        rounded(ofSize: 10, weight: .bold)
+    }
 }
