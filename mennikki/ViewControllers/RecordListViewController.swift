@@ -41,6 +41,10 @@ class RecordListViewController: BaseRecordListViewController {
         ceil(UIFont.appSearchField.lineHeight) + Self.searchFieldTextPadding * 2
     )
     private lazy var searchBarHeight: CGFloat = searchFieldHeight + Self.searchBarPadding * 2
+    /// 検索欄の背景色（外のボタンの丸の背景にも使う）
+    private static let searchFieldBackgroundColor = UIColor(white: 0.95, alpha: 1)
+    /// 外のボタンの、丸の外側の余白。丸は検索欄と同じ高さにし、押せる範囲は丸より広くする（標準の文字サイズで 44pt）
+    private static let searchCancelButtonHitPadding: CGFloat = 4
     private var searchFieldTrailingToWrapper: NSLayoutConstraint!
     private var searchFieldTrailingToCancel: NSLayoutConstraint!
     private let searchBarWrapperView: UIView = {
@@ -59,7 +63,7 @@ class RecordListViewController: BaseRecordListViewController {
         let tf = UITextField()
         tf.placeholder = "店名で検索"
         tf.tintColor = .appPrimary
-        tf.backgroundColor = UIColor(white: 0.95, alpha: 1)
+        tf.backgroundColor = Self.searchFieldBackgroundColor
         tf.layer.cornerRadius = 10
         tf.font = .appSearchField
         tf.clearButtonMode = .whileEditing
@@ -83,14 +87,23 @@ class RecordListViewController: BaseRecordListViewController {
         return tf
     }()
     private lazy var searchCancelButton: UIButton = {
-        let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
-        button.setImage(UIImage(systemName: "xmark.circle.fill", withConfiguration: config), for: .normal)
-        button.tintColor = .appSecondaryText
+        // 中の消去ボタン（塗りつぶしの丸に ×）と見分けられるよう、丸い背景に × の記号を、押せるものの色（フィルターのアイコンと同じ）で表示する
+        let padding = Self.searchCancelButtonHitPadding
+        var config = UIButton.Configuration.plain()
+        config.image = UIImage(systemName: "xmark")
+        config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(font: .appSearchField)
+            .applying(UIImage.SymbolConfiguration(weight: .semibold))
+        config.baseForegroundColor = .appPrimary
+        config.background.backgroundColor = Self.searchFieldBackgroundColor
+        config.background.backgroundInsets = NSDirectionalEdgeInsets(top: padding, leading: padding, bottom: padding, trailing: padding)
+        config.background.cornerRadius = searchFieldHeight / 2
+        config.cornerStyle = .fixed
+
+        let button = UIButton(configuration: config)
         button.addTarget(self, action: #selector(searchCancelTapped), for: .touchUpInside)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.isHidden = true
-        button.accessibilityLabel = "検索をクリア"
+        button.accessibilityLabel = "検索を終了"
         return button
     }()
 
@@ -180,8 +193,11 @@ class RecordListViewController: BaseRecordListViewController {
             searchTextField.centerYAnchor.constraint(equalTo: searchBarWrapperView.centerYAnchor),
             searchTextField.heightAnchor.constraint(equalToConstant: searchFieldHeight),
 
-            searchCancelButton.trailingAnchor.constraint(equalTo: searchBarWrapperView.trailingAnchor, constant: -16),
+            // 丸の右端を、検索欄の左端と同じく画面端から 16pt の位置にそろえる
+            searchCancelButton.trailingAnchor.constraint(equalTo: searchBarWrapperView.trailingAnchor, constant: -(16 - Self.searchCancelButtonHitPadding)),
             searchCancelButton.centerYAnchor.constraint(equalTo: searchBarWrapperView.centerYAnchor),
+            searchCancelButton.widthAnchor.constraint(equalToConstant: searchFieldHeight + Self.searchCancelButtonHitPadding * 2),
+            searchCancelButton.heightAnchor.constraint(equalToConstant: searchFieldHeight + Self.searchCancelButtonHitPadding * 2),
 
             searchBarSeparator.leadingAnchor.constraint(equalTo: searchBarWrapperView.leadingAnchor),
             searchBarSeparator.trailingAnchor.constraint(equalTo: searchBarWrapperView.trailingAnchor),
@@ -196,7 +212,8 @@ class RecordListViewController: BaseRecordListViewController {
 
         // デフォルト: テキストフィールドは右端まで広がる
         searchFieldTrailingToWrapper = searchTextField.trailingAnchor.constraint(equalTo: searchBarWrapperView.trailingAnchor, constant: -16)
-        searchFieldTrailingToCancel = searchTextField.trailingAnchor.constraint(equalTo: searchCancelButton.leadingAnchor, constant: -8)
+        // 検索欄と丸の間を 8pt あける
+        searchFieldTrailingToCancel = searchTextField.trailingAnchor.constraint(equalTo: searchCancelButton.leadingAnchor, constant: -(8 - Self.searchCancelButtonHitPadding))
         searchFieldTrailingToWrapper.isActive = true
     }
 
