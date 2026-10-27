@@ -30,7 +30,17 @@ class RecordListViewController: BaseRecordListViewController {
     private var prefFilterButton: UIBarButtonItem?
 
     private var searchDebounceTimer: Timer?
-    private let searchBarHeight: CGFloat = 52
+    /// 検索欄の最低の高さ（文字が大きいときは、文字に合わせて高くする）
+    private static let searchFieldMinHeight: CGFloat = 36
+    /// 検索欄の、文字の上下の余白
+    private static let searchFieldTextPadding: CGFloat = 8
+    /// 検索バーの、検索欄の上下の余白
+    private static let searchBarPadding: CGFloat = 8
+    private lazy var searchFieldHeight: CGFloat = max(
+        Self.searchFieldMinHeight,
+        ceil(UIFont.appSearchField.lineHeight) + Self.searchFieldTextPadding * 2
+    )
+    private lazy var searchBarHeight: CGFloat = searchFieldHeight + Self.searchBarPadding * 2
     private var searchFieldTrailingToWrapper: NSLayoutConstraint!
     private var searchFieldTrailingToCancel: NSLayoutConstraint!
     private let searchBarWrapperView: UIView = {
@@ -168,7 +178,7 @@ class RecordListViewController: BaseRecordListViewController {
 
             searchTextField.leadingAnchor.constraint(equalTo: searchBarWrapperView.leadingAnchor, constant: 16),
             searchTextField.centerYAnchor.constraint(equalTo: searchBarWrapperView.centerYAnchor),
-            searchTextField.heightAnchor.constraint(equalToConstant: 36),
+            searchTextField.heightAnchor.constraint(equalToConstant: searchFieldHeight),
 
             searchCancelButton.trailingAnchor.constraint(equalTo: searchBarWrapperView.trailingAnchor, constant: -16),
             searchCancelButton.centerYAnchor.constraint(equalTo: searchBarWrapperView.centerYAnchor),
