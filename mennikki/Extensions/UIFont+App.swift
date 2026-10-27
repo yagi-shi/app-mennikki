@@ -42,12 +42,6 @@ extension UIFont {
         return UIFontMetrics(forTextStyle: .body).scaledFont(for: font)
     }
 
-    /// ラーメンの種類
-    static var appRamenType: UIFont {
-        let font = rounded(ofSize: 15, weight: .semibold)
-        return UIFontMetrics(forTextStyle: .subheadline).scaledFont(for: font)
-    }
-
     /// 本文、説明文
     static var appBody: UIFont {
         let font = rounded(ofSize: 15, weight: .medium)
