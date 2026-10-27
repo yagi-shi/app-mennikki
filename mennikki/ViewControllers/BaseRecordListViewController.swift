@@ -48,7 +48,7 @@ class BaseRecordListViewController: UIViewController {
 
     private let emptyStateLabel: UILabel = {
         let label = UILabel()
-        label.font = .appSectionHeader
+        label.font = .appEmptyStateTitle
         label.textColor = .appText
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
