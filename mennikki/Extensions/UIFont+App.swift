@@ -36,9 +36,9 @@ extension UIFont {
         return UIFontMetrics(forTextStyle: .headline).scaledFont(for: font)
     }
 
-    /// 店舗名（一覧・詳細）
+    /// 店舗名（一覧のカード）
     static var appStoreName: UIFont {
-        let font = rounded(ofSize: 17, weight: .bold)
+        let font = rounded(ofSize: 15, weight: .bold)
         return UIFontMetrics(forTextStyle: .body).scaledFont(for: font)
     }
 
