@@ -131,7 +131,7 @@ class RecordCell: UICollectionViewCell {
     /// 種類タグの、文字の上下の余白
     private static let tagVerticalPadding: CGFloat = 3
     /// 店名の最大行数（入りきらない分は末尾を「…」で省略）
-    private static let storeNameMaxLines = 2
+    private static let storeNameMaxLines = 1
 
     /// 下エリアの高さのキャッシュ（文字サイズの設定ごと）
     private static var cachedBottomAreaHeight: (category: UIContentSizeCategory, height: CGFloat)?

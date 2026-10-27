@@ -366,7 +366,7 @@ class AddRecordViewController: UIViewController {
         var config = UIButton.Configuration.plain()
         config.title = type.rawValue
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { _ in
-            AttributeContainer([.font: UIFont.rounded(ofSize: 13, weight: .bold)])
+            AttributeContainer([.font: UIFont.appChip])
         }
         config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 14)
         config.background.cornerRadius = 22
@@ -420,7 +420,7 @@ class AddRecordViewController: UIViewController {
         let attrString = NSMutableAttributedString(
             string: title.uppercased(),
             attributes: [
-                .font: UIFont.rounded(ofSize: 12, weight: .heavy),
+                .font: UIFont.appFormLabel,
                 .foregroundColor: UIColor.appSecondaryText,
                 .kern: 1.5
             ]
@@ -429,7 +429,7 @@ class AddRecordViewController: UIViewController {
             attrString.append(NSAttributedString(
                 string: " ＊",
                 attributes: [
-                    .font: UIFont.rounded(ofSize: 12, weight: .heavy),
+                    .font: UIFont.appFormLabel,
                     .foregroundColor: UIColor.appPrimary
                 ]
             ))

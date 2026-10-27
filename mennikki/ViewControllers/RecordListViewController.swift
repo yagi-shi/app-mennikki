@@ -51,7 +51,7 @@ class RecordListViewController: BaseRecordListViewController {
         tf.tintColor = .appPrimary
         tf.backgroundColor = UIColor(white: 0.95, alpha: 1)
         tf.layer.cornerRadius = 10
-        tf.font = .systemFont(ofSize: 16)
+        tf.font = .appSearchField
         tf.clearButtonMode = .whileEditing
         tf.returnKeyType = .search
 

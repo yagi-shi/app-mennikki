@@ -470,7 +470,7 @@ class RecordDetailViewController: UIViewController {
 
         let valueLabel = UILabel()
         valueLabel.text = value
-        valueLabel.font = UIFont.rounded(ofSize: 15, weight: .bold)
+        valueLabel.font = .appInfoValue
         valueLabel.textColor = .appText
         valueLabel.translatesAutoresizingMaskIntoConstraints = false
 
