@@ -197,11 +197,11 @@ class CoreDataManager {
     }
 
     /// 全てのレコードを取得
-    /// - Parameter sortDescriptors: ソート条件（デフォルト: 訪問日の降順）
+    /// - Parameter sortDescriptors: ソート条件（デフォルト: RecordSort.newestFirst）
     /// - Returns: Recordの配列、エラー時は空配列
     func fetchAllRecords(sortDescriptors: [NSSortDescriptor]? = nil) -> [Record] {
         let request: NSFetchRequest<Record> = Record.fetchRequest()
-        request.sortDescriptors = sortDescriptors ?? [NSSortDescriptor(key: "visitDate", ascending: false)]
+        request.sortDescriptors = sortDescriptors ?? RecordSort.newestFirst
 
         do {
             return try viewContext?.fetch(request) ?? []
@@ -212,12 +212,12 @@ class CoreDataManager {
     }
 
     /// お気に入りのレコードを取得
-    /// - Parameter sortDescriptors: ソート条件（デフォルト: 訪問日の降順）
+    /// - Parameter sortDescriptors: ソート条件（デフォルト: RecordSort.newestFirst）
     /// - Returns: お気に入りのRecordの配列
     func fetchFavoriteRecords(sortDescriptors: [NSSortDescriptor]? = nil) -> [Record] {
         let request: NSFetchRequest<Record> = Record.fetchRequest()
         request.predicate = NSPredicate(format: "isFavorite == true")
-        request.sortDescriptors = sortDescriptors ?? [NSSortDescriptor(key: "visitDate", ascending: false)]
+        request.sortDescriptors = sortDescriptors ?? RecordSort.newestFirst
 
         do {
             return try viewContext?.fetch(request) ?? []
@@ -231,7 +231,7 @@ class CoreDataManager {
     /// - Parameters:
     ///   - searchText: 店舗名での検索文字列（部分一致）
     ///   - ramenTypes: フィルターするラーメンの種類（nilの場合は全種類）
-    ///   - sortDescriptors: ソート条件
+    ///   - sortDescriptors: ソート条件（デフォルト: RecordSort.newestFirst）
     /// - Returns: 検索条件に一致するRecordの配列
     func searchRecords(
         searchText: String? = nil,
@@ -258,7 +258,7 @@ class CoreDataManager {
             request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
         }
 
-        request.sortDescriptors = sortDescriptors ?? [NSSortDescriptor(key: "visitDate", ascending: false)]
+        request.sortDescriptors = sortDescriptors ?? RecordSort.newestFirst
 
         do {
             return try viewContext?.fetch(request) ?? []

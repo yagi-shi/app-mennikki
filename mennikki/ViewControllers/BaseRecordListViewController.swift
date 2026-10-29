@@ -140,7 +140,7 @@ class BaseRecordListViewController: UIViewController {
 
     func setupFetchedResultsController() {
         let fetchRequest: NSFetchRequest<Record> = Record.fetchRequest()
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "visitDate", ascending: false)]
+        fetchRequest.sortDescriptors = RecordSort.newestFirst
         fetchRequest.predicate = fetchPredicate()
 
         guard let context = CoreDataManager.shared.viewContext else { return }
