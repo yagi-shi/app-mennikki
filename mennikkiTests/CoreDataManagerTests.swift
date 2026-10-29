@@ -90,6 +90,41 @@ struct CoreDataManagerTests {
         #expect(manager.fetchRegisteredRamenTypes() == [.shoyu, .tonkotsu, .iekei])
     }
 
+    // MARK: - 並び順
+
+    @Test("訪問日が同じ記録は、作成日時の新しい順に並ぶ（全件・お気に入り・検索の読み出し）")
+    func sameVisitDateSortsByNewestCreated() throws {
+        let manager = CoreDataManager(inMemory: true)
+        let visitDate = Date(timeIntervalSince1970: 1_700_000_000)
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        // 作った順（A → B → C）と作成日時の新しい順（B → A → C）をずらし、作った順に並んだだけでは通らないようにする
+        let createdOffsets: [(name: String, seconds: TimeInterval)] = [("A", 1), ("B", 2), ("C", 0)]
+        for (name, seconds) in createdOffsets {
+            let record = try #require(manager.createRecord(storeName: name, ramenType: .shoyu, visitDate: visitDate, isFavorite: true))
+            record.createdAt = base.addingTimeInterval(seconds)
+        }
+        manager.saveIfNeeded()
+
+        #expect(manager.fetchAllRecords().map(\.storeName) == ["B", "A", "C"])
+        #expect(manager.fetchFavoriteRecords().map(\.storeName) == ["B", "A", "C"])
+        #expect(manager.searchRecords().map(\.storeName) == ["B", "A", "C"])
+    }
+
+    @Test("訪問日が違う記録は、作成日時に関係なく、訪問日の新しい順に並ぶ")
+    func differentVisitDatesSortByNewestVisit() throws {
+        let manager = CoreDataManager(inMemory: true)
+        let newerVisit = Date(timeIntervalSince1970: 1_700_000_000)
+        let olderVisit = newerVisit.addingTimeInterval(-86_400)
+        let base = Date(timeIntervalSince1970: 1_800_000_000)
+        let newer = try #require(manager.createRecord(storeName: "新しい訪問日", ramenType: .shoyu, visitDate: newerVisit))
+        newer.createdAt = base
+        let older = try #require(manager.createRecord(storeName: "古い訪問日", ramenType: .shoyu, visitDate: olderVisit))
+        older.createdAt = base.addingTimeInterval(10)
+        manager.saveIfNeeded()
+
+        #expect(manager.fetchAllRecords().map(\.storeName) == ["新しい訪問日", "古い訪問日"])
+    }
+
     // MARK: - ストアの保存先
 
     @Test("アプリ本体のストアは、既定の場所の mennikki.sqlite に保存される SQLite ストアである")
