@@ -17,11 +17,11 @@ extension UITabBar {
 
         // アイテムのフォントを Rounded に
         let normalAttrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.rounded(ofSize: 10, weight: .semibold),
+            .font: UIFont.appTabBarItem,
             .foregroundColor: UIColor.appSecondaryText
         ]
         let selectedAttrs: [NSAttributedString.Key: Any] = [
-            .font: UIFont.rounded(ofSize: 10, weight: .bold),
+            .font: UIFont.appTabBarItemSelected,
             .foregroundColor: UIColor.appPrimary
         ]
 

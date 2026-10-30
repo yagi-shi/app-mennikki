@@ -19,10 +19,19 @@ class AddRecordViewController: UIViewController {
 
     private var selectedRamenType: RamenType?
     private var selectedPrefecture: Prefecture?
+    /// この画面で選んだ写真。選んでいなければ nil（編集時の保存済みの写真は含めない）
     private var selectedImage: UIImage?
 
     // ラーメン種類チップボタンを保持
     private var typeChipButtons: [UIButton] = []
+    /// 種類の選択ボタンの最低の高さ（文字が大きいときは、文字に合わせて高くする）
+    private static let chipMinHeight: CGFloat = 44
+    /// 種類の選択ボタンの、文字の上下の余白
+    private static let chipTextPadding: CGFloat = 10
+    private lazy var chipHeight: CGFloat = max(
+        Self.chipMinHeight,
+        ceil(UIFont.appChip.lineHeight) + Self.chipTextPadding * 2
+    )
 
     // MARK: - UI Components
 
@@ -288,7 +297,7 @@ class AddRecordViewController: UIViewController {
             photoImageView.heightAnchor.constraint(equalToConstant: 200),
 
             // チップスクロールビュー高さ
-            ramenTypeScrollView.heightAnchor.constraint(equalToConstant: 44),
+            ramenTypeScrollView.heightAnchor.constraint(equalToConstant: chipHeight),
 
             // 保存ボタン（画面下部固定）
             saveActionButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -365,17 +374,17 @@ class AddRecordViewController: UIViewController {
         var config = UIButton.Configuration.plain()
         config.title = type.rawValue
         config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { _ in
-            AttributeContainer([.font: UIFont.rounded(ofSize: 13, weight: .bold)])
+            AttributeContainer([.font: UIFont.appChip])
         }
         config.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 14)
-        config.background.cornerRadius = 22
+        config.background.cornerRadius = chipHeight / 2
 
         let button = UIButton(configuration: config)
-        button.layer.cornerRadius = 22
+        button.layer.cornerRadius = chipHeight / 2
         button.layer.borderWidth = 2
         button.layer.borderColor = UIColor.clear.cgColor
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        button.heightAnchor.constraint(equalToConstant: chipHeight).isActive = true
 
         button.configurationUpdateHandler = { btn in
             var updated = btn.configuration ?? UIButton.Configuration.plain()
@@ -419,7 +428,7 @@ class AddRecordViewController: UIViewController {
         let attrString = NSMutableAttributedString(
             string: title.uppercased(),
             attributes: [
-                .font: UIFont.rounded(ofSize: 12, weight: .heavy),
+                .font: UIFont.appFormLabel,
                 .foregroundColor: UIColor.appSecondaryText,
                 .kern: 1.5
             ]
@@ -428,7 +437,7 @@ class AddRecordViewController: UIViewController {
             attrString.append(NSAttributedString(
                 string: " ＊",
                 attributes: [
-                    .font: UIFont.rounded(ofSize: 12, weight: .heavy),
+                    .font: UIFont.appFormLabel,
                     .foregroundColor: UIColor.appPrimary
                 ]
             ))
@@ -592,21 +601,35 @@ class AddRecordViewController: UIViewController {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
-            var photoData: Data?
-            if let image = image {
-                let resized = self.resizeImage(image)
-                photoData = resized.jpegData(compressionQuality: 0.75)
-            } else if editMode, let existing = existingPhoto {
-                photoData = existing
+            // 写真を選び直していなければ、保存済みのデータをそのまま使う（再圧縮しない）
+            let photoResult = Result {
+                try RecordPhotoResolver.resolve(
+                    existingPhoto: existingPhoto,
+                    didPickNewPhoto: image != nil,
+                    encodeNewPhoto: {
+                        guard let image = image else { return nil }
+                        return self.resizeImage(image).jpegData(compressionQuality: 0.75)
+                    }
+                )
             }
 
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.view.isUserInteractionEnabled = true
 
+                // 写真を変換できなかった場合は保存しない（保存済みの写真を失わないため）
+                guard case .success(let photoData) = photoResult else {
+                    self.showAlert(title: "保存エラー", message: "写真を保存できる形式に変換できませんでした。別の写真を選んでください。")
+                    return
+                }
+
                 var saveSuccess = false
 
                 if editMode, let record = record {
+                    if image != nil {
+                        // 写真を差し替えるので、一覧に古いサムネイルが残らないようにする
+                        RecordCell.removeCachedImage(for: record)
+                    }
                     saveSuccess = CoreDataManager.shared.updateRecord(
                         record,
                         storeName: storeName,
@@ -639,16 +662,17 @@ class AddRecordViewController: UIViewController {
 
                 self.showSuccessAnimation()
 
-                // 3件目の新規記録保存時にストアレビューを依頼（表示頻度はOS側で制御）
-                if self.recordToEdit == nil {
-                    let count = CoreDataManager.shared.fetchAllRecords().count
-                    if count == 3, let scene = self.view.window?.windowScene {
-                        SKStoreReviewController.requestReview(in: scene)
-                    }
-                }
+                // 新規登録で記録の総数が節目になったら、登録画面を閉じた後にストア評価を依頼する（表示の頻度は iOS が制御）
+                let shouldRequestReview = !editMode
+                    && ReviewRequestPolicy.shouldRequestReview(recordCount: CoreDataManager.shared.fetchAllRecords().count)
+                let scene = self.view.window?.windowScene
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                    self?.dismiss(animated: true)
+                    self?.dismiss(animated: true) {
+                        if shouldRequestReview, let scene {
+                            AppStore.requestReview(in: scene)
+                        }
+                    }
                 }
             }
         }
@@ -703,6 +727,16 @@ class AddRecordViewController: UIViewController {
         }
     }
 
+    /// 写真のプレビューを表示する。
+    /// プレビューはタップを受け取らないので、下に重なっている photoButton が反応し、写真を選び直せる
+    private func showPhotoPreview(_ image: UIImage) {
+        photoImageView.image = image
+        photoImageView.isHidden = false
+        photoButton.setImage(nil, for: .normal)
+        photoButton.accessibilityLabel = "写真を変更"
+        photoButton.accessibilityHint = "ダブルタップして別の写真を選択"
+    }
+
     /// 長辺を maxDimension 以下にリサイズ（縦横比維持）
     /// UIGraphicsImageRenderer を使用（iOS 17+ 非推奨APIを回避）
     private func resizeImage(_ image: UIImage, maxDimension: CGFloat = 800) -> UIImage {
@@ -752,10 +786,10 @@ class AddRecordViewController: UIViewController {
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 guard let image = UIImage(data: photoData) else { return }
                 DispatchQueue.main.async {
-                    self?.selectedImage = image
-                    self?.photoImageView.image = image
-                    self?.photoImageView.isHidden = false
-                    self?.photoButton.isHidden = true
+                    // 読み込み中に写真を選び直していたら、選んだ写真の表示を上書きしない
+                    guard let self, self.selectedImage == nil else { return }
+                    // 表示するだけで selectedImage には入れない（保存時に再圧縮されないようにする）
+                    self.showPhotoPreview(image)
                 }
             }
         }
@@ -802,9 +836,7 @@ extension AddRecordViewController: PHPickerViewControllerDelegate {
                 DispatchQueue.main.async {
                     if let image = image as? UIImage {
                         self?.selectedImage = image
-                        self?.photoImageView.image = image
-                        self?.photoImageView.isHidden = false
-                        self?.photoButton.isHidden = true
+                        self?.showPhotoPreview(image)
                     }
                 }
             }

@@ -19,8 +19,32 @@ class RecordListViewController: BaseRecordListViewController {
     private var selectedRamenTypes: [RamenType] = []
     private var selectedPrefecture: Prefecture?
     private var searchText: String = ""
+
+    /// 現在の絞り込み条件
+    private var currentFilter: RecordListFilter {
+        RecordListFilter(searchText: searchText, selectedRamenTypes: selectedRamenTypes, selectedPrefecture: selectedPrefecture)
+    }
+
+    // フィルターボタン（適用中かどうかで見た目を切り替える）
+    private var typeFilterButton: UIBarButtonItem?
+    private var prefFilterButton: UIBarButtonItem?
+
     private var searchDebounceTimer: Timer?
-    private let searchBarHeight: CGFloat = 52
+    /// 検索欄の最低の高さ（文字が大きいときは、文字に合わせて高くする）
+    private static let searchFieldMinHeight: CGFloat = 36
+    /// 検索欄の、文字の上下の余白
+    private static let searchFieldTextPadding: CGFloat = 8
+    /// 検索バーの、検索欄の上下の余白
+    private static let searchBarPadding: CGFloat = 8
+    private lazy var searchFieldHeight: CGFloat = max(
+        Self.searchFieldMinHeight,
+        ceil(UIFont.appSearchField.lineHeight) + Self.searchFieldTextPadding * 2
+    )
+    private lazy var searchBarHeight: CGFloat = searchFieldHeight + Self.searchBarPadding * 2
+    /// 検索欄の背景色（外のボタンの丸の背景にも使う）
+    private static let searchFieldBackgroundColor = UIColor(white: 0.95, alpha: 1)
+    /// 外のボタンの、丸の外側の余白。丸は検索欄と同じ高さにし、押せる範囲は丸より広くする（標準の文字サイズで 44pt）
+    private static let searchCancelButtonHitPadding: CGFloat = 4
     private var searchFieldTrailingToWrapper: NSLayoutConstraint!
     private var searchFieldTrailingToCancel: NSLayoutConstraint!
     private let searchBarWrapperView: UIView = {
@@ -39,9 +63,9 @@ class RecordListViewController: BaseRecordListViewController {
         let tf = UITextField()
         tf.placeholder = "店名で検索"
         tf.tintColor = .appPrimary
-        tf.backgroundColor = UIColor(white: 0.95, alpha: 1)
+        tf.backgroundColor = Self.searchFieldBackgroundColor
         tf.layer.cornerRadius = 10
-        tf.font = .systemFont(ofSize: 16)
+        tf.font = .appSearchField
         tf.clearButtonMode = .whileEditing
         tf.returnKeyType = .search
 
@@ -63,14 +87,23 @@ class RecordListViewController: BaseRecordListViewController {
         return tf
     }()
     private lazy var searchCancelButton: UIButton = {
-        let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
-        button.setImage(UIImage(systemName: "xmark.circle.fill", withConfiguration: config), for: .normal)
-        button.tintColor = .appSecondaryText
+        // 中の消去ボタン（塗りつぶしの丸に ×）と見分けられるよう、丸い背景に × の記号を、押せるものの色（フィルターのアイコンと同じ）で表示する
+        let padding = Self.searchCancelButtonHitPadding
+        var config = UIButton.Configuration.plain()
+        config.image = UIImage(systemName: "xmark")
+        config.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(font: .appSearchField)
+            .applying(UIImage.SymbolConfiguration(weight: .semibold))
+        config.baseForegroundColor = .appPrimary
+        config.background.backgroundColor = Self.searchFieldBackgroundColor
+        config.background.backgroundInsets = NSDirectionalEdgeInsets(top: padding, leading: padding, bottom: padding, trailing: padding)
+        config.background.cornerRadius = searchFieldHeight / 2
+        config.cornerStyle = .fixed
+
+        let button = UIButton(configuration: config)
         button.addTarget(self, action: #selector(searchCancelTapped), for: .touchUpInside)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.isHidden = true
-        button.accessibilityLabel = "検索をクリア"
+        button.accessibilityLabel = "検索を終了"
         return button
     }()
 
@@ -96,8 +129,13 @@ class RecordListViewController: BaseRecordListViewController {
     // MARK: - Base Class Configuration
 
     override var emptyStateIconName: String { "bowl.fill" }
-    override var emptyStateTitleText: String { "まだラーメンの記録がありません" }
-    override var emptyStateSubTitleText: String { "＋ボタンから最初の記録を追加しましょう！" }
+    // 絞り込みで 0 件のときに「記録が消えた」と誤解されないよう、文言を分ける
+    override var emptyStateTitleText: String {
+        currentFilter.isNarrowing ? "条件に合う記録がありません" : "まだラーメンの記録がありません"
+    }
+    override var emptyStateSubTitleText: String {
+        currentFilter.isNarrowing ? "検索やフィルターを解除すると、すべての記録が表示されます" : "＋ボタンから最初の記録を追加しましょう！"
+    }
 
     override func fetchPredicate() -> NSPredicate? {
         var predicates: [NSPredicate] = []
@@ -153,10 +191,13 @@ class RecordListViewController: BaseRecordListViewController {
 
             searchTextField.leadingAnchor.constraint(equalTo: searchBarWrapperView.leadingAnchor, constant: 16),
             searchTextField.centerYAnchor.constraint(equalTo: searchBarWrapperView.centerYAnchor),
-            searchTextField.heightAnchor.constraint(equalToConstant: 36),
+            searchTextField.heightAnchor.constraint(equalToConstant: searchFieldHeight),
 
-            searchCancelButton.trailingAnchor.constraint(equalTo: searchBarWrapperView.trailingAnchor, constant: -16),
+            // 丸の右端を、検索欄の左端と同じく画面端から 16pt の位置にそろえる
+            searchCancelButton.trailingAnchor.constraint(equalTo: searchBarWrapperView.trailingAnchor, constant: -(16 - Self.searchCancelButtonHitPadding)),
             searchCancelButton.centerYAnchor.constraint(equalTo: searchBarWrapperView.centerYAnchor),
+            searchCancelButton.widthAnchor.constraint(equalToConstant: searchFieldHeight + Self.searchCancelButtonHitPadding * 2),
+            searchCancelButton.heightAnchor.constraint(equalToConstant: searchFieldHeight + Self.searchCancelButtonHitPadding * 2),
 
             searchBarSeparator.leadingAnchor.constraint(equalTo: searchBarWrapperView.leadingAnchor),
             searchBarSeparator.trailingAnchor.constraint(equalTo: searchBarWrapperView.trailingAnchor),
@@ -171,7 +212,8 @@ class RecordListViewController: BaseRecordListViewController {
 
         // デフォルト: テキストフィールドは右端まで広がる
         searchFieldTrailingToWrapper = searchTextField.trailingAnchor.constraint(equalTo: searchBarWrapperView.trailingAnchor, constant: -16)
-        searchFieldTrailingToCancel = searchTextField.trailingAnchor.constraint(equalTo: searchCancelButton.leadingAnchor, constant: -8)
+        // 検索欄と丸の間を 8pt あける
+        searchFieldTrailingToCancel = searchTextField.trailingAnchor.constraint(equalTo: searchCancelButton.leadingAnchor, constant: -(8 - Self.searchCancelButtonHitPadding))
         searchFieldTrailingToWrapper.isActive = true
     }
 
@@ -199,6 +241,7 @@ class RecordListViewController: BaseRecordListViewController {
             target: self,
             action: #selector(filterButtonTapped)
         )
+        typeFilterButton.accessibilityLabel = "種類でフィルター"
         // 都道府県フィルター
         let prefFilterButton = UIBarButtonItem(
             image: UIImage(systemName: "mappin.circle"),
@@ -206,7 +249,24 @@ class RecordListViewController: BaseRecordListViewController {
             target: self,
             action: #selector(prefectureFilterButtonTapped)
         )
+        prefFilterButton.accessibilityLabel = "都道府県でフィルター"
         navigationItem.rightBarButtonItems = [typeFilterButton, prefFilterButton]
+        self.typeFilterButton = typeFilterButton
+        self.prefFilterButton = prefFilterButton
+        updateFilterButtons()
+    }
+
+    /// 適用中のフィルターのアイコンを、塗りつぶしの赤色にする
+    private func updateFilterButtons() {
+        let filter = currentFilter
+        applyFilterAppearance(to: typeFilterButton, symbolName: "line.3.horizontal.decrease.circle", isActive: filter.isRamenTypeFilterActive)
+        applyFilterAppearance(to: prefFilterButton, symbolName: "mappin.circle", isActive: filter.isPrefectureFilterActive)
+    }
+
+    private func applyFilterAppearance(to button: UIBarButtonItem?, symbolName: String, isActive: Bool) {
+        button?.image = UIImage(systemName: isActive ? "\(symbolName).fill" : symbolName)
+        button?.tintColor = isActive ? .appPrimary : nil
+        button?.accessibilityValue = isActive ? "適用中" : nil
     }
 
     // MARK: - Refresh
@@ -227,6 +287,7 @@ class RecordListViewController: BaseRecordListViewController {
 
         collectionView.reloadData()
         updateEmptyState()
+        updateFilterButtons()
     }
 
     // MARK: - Search Actions
@@ -282,9 +343,26 @@ class RecordListViewController: BaseRecordListViewController {
     }
 
     @objc private func filterButtonTapped() {
+        // 記録に存在する種類と、選んでいる種類（記録がなくなったものを含む）だけを表示（軽量フェッチ）
+        let options = RamenType.filterOptions(
+            registered: CoreDataManager.shared.fetchRegisteredRamenTypes(),
+            selected: selectedRamenTypes
+        )
+
+        guard !options.isEmpty else {
+            let alert = UIAlertController(
+                title: "ラーメンの種類でフィルター",
+                message: "記録がありません",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+            return
+        }
+
         let alert = UIAlertController(title: "ラーメンの種類でフィルター", message: "選択してください", preferredStyle: .actionSheet)
 
-        for type in RamenType.allCases {
+        for type in options {
             let isSelected = selectedRamenTypes.contains(type)
             let title = isSelected ? "✓ \(type.rawValue)" : type.rawValue
 

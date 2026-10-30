@@ -16,24 +16,53 @@ class CoreDataManager {
 
     // MARK: - Singleton
 
-    static let shared = CoreDataManager()
+    static let shared = CoreDataManager(inMemory: false)
 
-    private init() {}
+    /// ストアをメモリ上に作るかどうか
+    private let inMemory: Bool
+
+    /// - Parameter inMemory: true の場合、ストアをメモリ上に作り、端末には保存しない（テスト用）。
+    ///   アプリ本体は `shared` を使う
+    init(inMemory: Bool) {
+        self.inMemory = inMemory
+    }
 
     // MARK: - Core Data Stack
+
+    /// データモデルの名前（ストアのファイル名にも使われる）
+    private static let modelName = "mennikki"
+
+    /// 全インスタンスで共有するデータモデル。
+    /// コンテナごとに読み込むと Record のエンティティ定義が重複し、Core Data が一意に特定できなくなる
+    private static let managedObjectModel: NSManagedObjectModel? = {
+        guard let url = Bundle(for: CoreDataManager.self).url(forResource: modelName, withExtension: "momd") else {
+            return nil
+        }
+        return NSManagedObjectModel(contentsOf: url)
+    }()
 
     /// ストアが正常に読み込まれたかどうか
     private var isStoreLoaded = false
 
     /// Persistent Container
     private lazy var persistentContainer: NSPersistentContainer = {
-        let container = NSPersistentContainer(name: "mennikki")
-        // 端末ロック中のデータアクセスを防止
+        let container: NSPersistentContainer
+        if let model = Self.managedObjectModel {
+            container = NSPersistentContainer(name: Self.modelName, managedObjectModel: model)
+        } else {
+            container = NSPersistentContainer(name: Self.modelName)
+        }
         let description = container.persistentStoreDescriptions.first
-        description?.setOption(
-            FileProtectionType.complete as NSObject,
-            forKey: NSPersistentStoreFileProtectionKey
-        )
+        if self.inMemory {
+            // 保存先を /dev/null にすると、SQLite ストアがメモリ上に作られる
+            description?.url = URL(fileURLWithPath: "/dev/null")
+        } else {
+            // 端末ロック中のデータアクセスを防止
+            description?.setOption(
+                FileProtectionType.complete as NSObject,
+                forKey: NSPersistentStoreFileProtectionKey
+            )
+        }
         container.loadPersistentStores { [weak self] _, error in
             if let error = error as NSError? {
                 logger.error("Persistent store load error: \(error.localizedDescription, privacy: .public)")
@@ -168,11 +197,11 @@ class CoreDataManager {
     }
 
     /// 全てのレコードを取得
-    /// - Parameter sortDescriptors: ソート条件（デフォルト: 訪問日の降順）
+    /// - Parameter sortDescriptors: ソート条件（デフォルト: RecordSort.newestFirst）
     /// - Returns: Recordの配列、エラー時は空配列
     func fetchAllRecords(sortDescriptors: [NSSortDescriptor]? = nil) -> [Record] {
         let request: NSFetchRequest<Record> = Record.fetchRequest()
-        request.sortDescriptors = sortDescriptors ?? [NSSortDescriptor(key: "visitDate", ascending: false)]
+        request.sortDescriptors = sortDescriptors ?? RecordSort.newestFirst
 
         do {
             return try viewContext?.fetch(request) ?? []
@@ -183,12 +212,12 @@ class CoreDataManager {
     }
 
     /// お気に入りのレコードを取得
-    /// - Parameter sortDescriptors: ソート条件（デフォルト: 訪問日の降順）
+    /// - Parameter sortDescriptors: ソート条件（デフォルト: RecordSort.newestFirst）
     /// - Returns: お気に入りのRecordの配列
     func fetchFavoriteRecords(sortDescriptors: [NSSortDescriptor]? = nil) -> [Record] {
         let request: NSFetchRequest<Record> = Record.fetchRequest()
         request.predicate = NSPredicate(format: "isFavorite == true")
-        request.sortDescriptors = sortDescriptors ?? [NSSortDescriptor(key: "visitDate", ascending: false)]
+        request.sortDescriptors = sortDescriptors ?? RecordSort.newestFirst
 
         do {
             return try viewContext?.fetch(request) ?? []
@@ -202,7 +231,7 @@ class CoreDataManager {
     /// - Parameters:
     ///   - searchText: 店舗名での検索文字列（部分一致）
     ///   - ramenTypes: フィルターするラーメンの種類（nilの場合は全種類）
-    ///   - sortDescriptors: ソート条件
+    ///   - sortDescriptors: ソート条件（デフォルト: RecordSort.newestFirst）
     /// - Returns: 検索条件に一致するRecordの配列
     func searchRecords(
         searchText: String? = nil,
@@ -229,7 +258,7 @@ class CoreDataManager {
             request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
         }
 
-        request.sortDescriptors = sortDescriptors ?? [NSSortDescriptor(key: "visitDate", ascending: false)]
+        request.sortDescriptors = sortDescriptors ?? RecordSort.newestFirst
 
         do {
             return try viewContext?.fetch(request) ?? []
@@ -252,6 +281,23 @@ class CoreDataManager {
             return results.compactMap { $0["prefecture"] as? String }
         } catch {
             logger.error("Error fetching distinct prefectures: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    /// 記録済みのラーメンの種類一覧を取得（軽量フェッチ）。RamenType の定義順に並べる
+    func fetchRegisteredRamenTypes() -> [RamenType] {
+        let request = NSFetchRequest<NSDictionary>(entityName: "Record")
+        request.resultType = .dictionaryResultType
+        request.propertiesToFetch = ["ramenType"]
+        request.returnsDistinctResults = true
+
+        do {
+            let results = try viewContext?.fetch(request) ?? []
+            let registered = Set(results.compactMap { ($0["ramenType"] as? String).flatMap(RamenType.init(rawValue:)) })
+            return RamenType.allCases.filter { registered.contains($0) }
+        } catch {
+            logger.error("Error fetching registered ramen types: \(error.localizedDescription, privacy: .public)")
             return []
         }
     }

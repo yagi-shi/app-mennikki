@@ -48,7 +48,7 @@ class BaseRecordListViewController: UIViewController {
 
     private let emptyStateLabel: UILabel = {
         let label = UILabel()
-        label.font = .appSectionHeader
+        label.font = .appEmptyStateTitle
         label.textColor = .appText
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -140,7 +140,7 @@ class BaseRecordListViewController: UIViewController {
 
     func setupFetchedResultsController() {
         let fetchRequest: NSFetchRequest<Record> = Record.fetchRequest()
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "visitDate", ascending: false)]
+        fetchRequest.sortDescriptors = RecordSort.newestFirst
         fetchRequest.predicate = fetchPredicate()
 
         guard let context = CoreDataManager.shared.viewContext else { return }
@@ -162,6 +162,9 @@ class BaseRecordListViewController: UIViewController {
     // MARK: - Helper Methods
 
     func updateEmptyState() {
+        // 絞り込みの有無で文言が変わる画面があるため、表示を更新するたびに設定し直す
+        emptyStateLabel.text = emptyStateTitleText
+        emptyStateSubLabel.text = emptyStateSubTitleText
         let isEmpty = fetchedResultsController?.fetchedObjects?.isEmpty ?? true
         emptyStateStackView.isHidden = !isEmpty
         collectionView.isHidden = isEmpty
@@ -223,7 +226,8 @@ extension BaseRecordListViewController: UICollectionViewDelegateFlowLayout {
         let margins: CGFloat = 10 * 2
         let availableWidth = collectionView.bounds.width - margins - spacing
         let cellWidth = availableWidth / 2
-        let cellHeight = cellWidth * 1.0
+        // 店名と種類タグ・星が切れない高さにする
+        let cellHeight = RecordCell.height(forWidth: cellWidth)
         return CGSize(width: cellWidth, height: cellHeight)
     }
 }

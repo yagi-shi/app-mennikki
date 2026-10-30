@@ -26,6 +26,10 @@ class RecordDetailViewController: UIViewController {
 
     private static let defaultHeaderHeight: CGFloat = 220
     private static let maxHeaderHeight: CGFloat = 400
+    /// 情報行（都道府県・訪問日・費用）の最低の高さ（文字が大きいときは、文字に合わせて高くする）
+    private static let infoRowMinHeight: CGFloat = 60
+    /// 情報行の、文字の上下の余白
+    private static let infoRowVerticalPadding: CGFloat = 12
 
     private let recordID: NSManagedObjectID
     private var record: Record?
@@ -96,7 +100,8 @@ class RecordDetailViewController: UIViewController {
         let l = UILabel()
         l.font = .appDetailTitle
         l.textColor = .appText
-        l.numberOfLines = 2
+        // 一覧のカードでは省略するため、詳細では全文を表示する
+        l.numberOfLines = 0
         l.translatesAutoresizingMaskIntoConstraints = false
         return l
     }()
@@ -469,8 +474,9 @@ class RecordDetailViewController: UIViewController {
 
         let valueLabel = UILabel()
         valueLabel.text = value
-        valueLabel.font = UIFont.rounded(ofSize: 15, weight: .bold)
+        valueLabel.font = .appInfoValue
         valueLabel.textColor = .appText
+        valueLabel.numberOfLines = 0
         valueLabel.translatesAutoresizingMaskIntoConstraints = false
 
         // アクセシビリティ
@@ -481,8 +487,12 @@ class RecordDetailViewController: UIViewController {
         container.addSubview(titleLabel)
         container.addSubview(valueLabel)
 
+        // 文字が小さいときは最低の高さにし、大きいときは値の下に余白を残して高くする
+        let valueBottom = valueLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -Self.infoRowVerticalPadding)
+        valueBottom.priority = .defaultHigh
+
         NSLayoutConstraint.activate([
-            container.heightAnchor.constraint(equalToConstant: 60),
+            container.heightAnchor.constraint(greaterThanOrEqualToConstant: Self.infoRowMinHeight),
 
             iconIV.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
             iconIV.centerYAnchor.constraint(equalTo: container.centerYAnchor),
@@ -490,11 +500,12 @@ class RecordDetailViewController: UIViewController {
             iconIV.heightAnchor.constraint(equalToConstant: 22),
 
             titleLabel.leadingAnchor.constraint(equalTo: iconIV.trailingAnchor, constant: 14),
-            titleLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
+            titleLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: Self.infoRowVerticalPadding),
 
             valueLabel.leadingAnchor.constraint(equalTo: iconIV.trailingAnchor, constant: 14),
             valueLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
-            valueLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20)
+            valueLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
+            valueBottom
         ])
 
         return container
