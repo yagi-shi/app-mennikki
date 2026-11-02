@@ -177,6 +177,36 @@ mennikki/
   - `chore`: ビルド設定やプロジェクト構成などの変更
 - PR本文に `Closes #<issue番号>` を含める
 
+## ブランチとリリースの流れ
+
+### ブランチ
+- リリースごとに、`main` から `dev_YYYYMM`（`YYYYMM` はリリースする月）を作る
+- feature ブランチは `dev_YYYYMM` から切り、PR の向き先も `dev_YYYYMM` にする
+- feature は 1 つずつマージする（スタックにしない）。次の feature ブランチは、マージ後の `dev_YYYYMM` から切る
+- リリースする月が変わったら、指示者の指示で `dev_YYYYMM` の名前を実際の月に変える（GitHub のブランチ名の変更で行い、コミットは変えない）
+- push は追跡先を設定せず、`git push origin <ブランチ名>` のようにリモートとブランチを明示する
+- マージ済みのブランチは、手元と GitHub の両方から消す
+- `main` は GitHub のルールセットで、削除と強制 push を禁止している
+
+### マージと issue
+- マージは指示者が GitHub で行う
+- `Closes #<issue番号>` で issue が自動で閉じるのは `main` 向けの PR だけ。`dev_YYYYMM` 向けの PR がマージされたら、issue を手で閉じる
+- README の TODO に対応する項目がある issue では、その PR の中で TODO の `[ ]` を `[X]` にする
+
+### リリースの手順
+1. `dev_YYYYMM` で、バージョン番号とビルド番号を上げる
+2. 直前のリリースのタグと比べて、データ層（`mennikki.xcdatamodeld`、`Managers/`、`Models/`）の差分を確かめる
+   （例: `git diff v1.1.0-6 HEAD -- mennikki`）
+3. 指示者がビルドを App Store Connect にアップロードし、リリース前の手動テスト（`docs/30_test/test.md`）を行う
+4. テストの結果を `docs/30_test/test.md` に記録する。記録は、そのリリース用ブランチで、`main` へマージする前に行う
+   （ドキュメントだけの変更なので、タグを付けたあとや審査中に入れてよい）
+5. 審査に出すビルドが決まったら、そのビルドを作ったコミットにタグ `v<バージョン>-<ビルド番号>`（例: `v1.1.0-6`）を付け、
+   `git push origin <タグ名>` で送る。GitHub Release は作らない
+6. `dev_YYYYMM` → `main` の PR を作る。マージは審査に通ってから、「Create a merge commit」で行う
+   （Squash にすると、タグの指すコミットが `main` の履歴から外れる）
+7. リジェクトで再提出するときは、`dev_YYYYMM` で直してビルド番号を上げ、再提出したコミットに新しいタグを付ける
+8. マージしたら、手元の `main` を最新にし、`dev_YYYYMM` を手元と GitHub から消す
+
 ## テストのルール
 - Model / ViewModel / ロジック層は、受け入れ条件に対応するテストを先に書いてから実装する
 - テストは Swift Testing（`import Testing`）で書く
