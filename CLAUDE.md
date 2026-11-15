@@ -197,15 +197,19 @@ mennikki/
 1. `dev_YYYYMM` で、バージョン番号とビルド番号を上げる
 2. 直前のリリースのタグと比べて、データ層（`mennikki.xcdatamodeld`、`Managers/`、`Models/`）の差分を確かめる
    （例: `git diff v1.1.0-6 HEAD -- mennikki`）
-3. 指示者がビルドを App Store Connect にアップロードし、リリース前の手動テスト（`docs/30_test/test.md`）を行う
-4. テストの結果を `docs/30_test/test.md` に記録する。記録は、そのリリース用ブランチで、`main` へマージする前に行う
+3. `.github/workflows/` のアクションに新しい版が出ていないか、配布元のリリースの一覧で確かめる
+   （例: `gh release list -R actions/checkout`）。出ていれば、feature ブランチでコミットの SHA と版のコメントを更新し、
+   `dev_YYYYMM` にマージする。アクションは、タグではなくコミットの SHA で指定する。
+   メジャー版が上がったとき（例: v6 → v7）は、変更点を確かめてから、上げるかを指示者と決める
+4. 指示者がビルドを App Store Connect にアップロードし、リリース前の手動テスト（`docs/30_test/test.md`）を行う
+5. テストの結果を `docs/30_test/test.md` に記録する。記録は、そのリリース用ブランチで、`main` へマージする前に行う
    （ドキュメントだけの変更なので、タグを付けたあとや審査中に入れてよい）
-5. 審査に出すビルドが決まったら、そのビルドを作ったコミットにタグ `v<バージョン>-<ビルド番号>`（例: `v1.1.0-6`）を付け、
+6. 審査に出すビルドが決まったら、そのビルドを作ったコミットにタグ `v<バージョン>-<ビルド番号>`（例: `v1.1.0-6`）を付け、
    `git push origin <タグ名>` で送る。GitHub Release は作らない
-6. `dev_YYYYMM` → `main` の PR を作る。マージは審査に通ってから、「Create a merge commit」で行う
+7. `dev_YYYYMM` → `main` の PR を作る。マージは審査に通ってから、「Create a merge commit」で行う
    （Squash にすると、タグの指すコミットが `main` の履歴から外れる）
-7. リジェクトで再提出するときは、`dev_YYYYMM` で直してビルド番号を上げ、再提出したコミットに新しいタグを付ける
-8. マージしたら、手元の `main` を最新にし、`dev_YYYYMM` を手元と GitHub から消す
+8. リジェクトで再提出するときは、`dev_YYYYMM` で直してビルド番号を上げ、再提出したコミットに新しいタグを付ける
+9. マージしたら、手元の `main` を最新にし、`dev_YYYYMM` を手元と GitHub から消す
 
 ## テストのルール
 - Model / ViewModel / ロジック層は、受け入れ条件に対応するテストを先に書いてから実装する
