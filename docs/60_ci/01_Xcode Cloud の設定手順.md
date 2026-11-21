@@ -429,11 +429,28 @@ Xcode Cloud が止まっているときなど、テストの結果が出ない�
 
 ## 11. 運用のルール
 
-CLAUDE.md の「テストのルール」に書いてあります。要点は次のとおりです。
+CLAUDE.md の「テストのルール」と「リリースの手順」に書いてあります。要点は次のとおりです。
 
 - PR は、Xcode Cloud のテストが成功してからマージする。失敗したら、原因を直してから push し直す
 - `main` と `dev_` で始まるブランチでは、テストが成功しないと PR をマージできない（ルールセット require-pr-tests。10 を参照）
 - Xcode の版は、手元と Xcode Cloud で同じにする
+- PR にコミットを足すたびにテストが動くので、コミットはまとめてから push する
+- コミットのタイトルや本文に `[ci skip]` を入れない。Xcode Cloud はこの言葉があるとビルドを飛ばすので、テストの結果が届かず、PR をマージできなくなる
+- Xcode Cloud が止まっているときや、月 25 時間を使い切ったときに限り、管理者が例外（bypass）で PR をマージしてよい。その前に、手元でテストのコマンドを動かして成功を確かめ、結果を PR に書く
+- リリースのたびに、App Store Connect で今月の使用量を確かめる（下の「利用時間」を参照）
+- 有料のプランの申し込みなど、費用がかかることは、相談して決める
+
+### 利用時間（月 25 時間）
+
+| 項目 | 内容 |
+|---|---|
+| 使える時間 | 開発者登録に含まれる月 25 時間（1,500 分）。使わなかった分は、次の月に持ち越せない |
+| 数え方 | PR に出る待ち時間ではなく、Apple のマシンが作業した時間で数える。ビルドとテストを並べて動かすことがあるため、PR に出る時間より多く数えられることがある |
+| 1 回のテスト | PR に出る Test の時間は 4 分前後（2026-11-22 の 3 回の結果）。実際に数えられた時間は、下の場所で見る |
+| 見る場所 | App Store Connect の「Users and Access」→「Xcode Cloud」のタブ（チーム全体）。アプリのページの「Xcode Cloud」のタブ（このアプリだけ）。Apple Developer アプリの Account でも見られる |
+| 残りが少なくなったとき | 知らせる仕組みはない。リリースのたびに、見て確かめる |
+| 使い切ったとき | Apple の資料には、はっきり書かれていない。開発者の報告では、ビルドが「利用の上限に達した」として止められ、月が変わると使えるようになる。止まると、ルールセットにより PR をマージできなくなるので、上のルールのとおり例外でマージする |
+| 課金 | 使い切っても、自動で有料にはならない。有料のプラン（100 時間で月 49.99 ドルから）は、Account Holder が Apple Developer アプリの Account のタブで申し込んだときだけ始まる |
 
 ## 12. あとで設定を変えるとき
 
@@ -486,4 +503,6 @@ GitHub の Settings → Applications → Installed GitHub Apps → Xcode Cloud �
 - [Configuring requirements for merging a pull request](https://developer.apple.com/documentation/xcode/configuring-requirements-for-merging-a-pull-request)
 - [Setting the next build number for Xcode Cloud builds](https://developer.apple.com/documentation/xcode/setting-the-next-build-number-for-xcode-cloud-builds)（TestFlight への配信を始めるときに読む）
 - [REST API endpoints for rules（GitHub Docs）](https://docs.github.com/en/rest/repos/rules)
+- [Get started with Xcode Cloud](https://developer.apple.com/xcode-cloud/get-started/)（利用時間と有料のプラン）
+- [Reviewing Xcode Cloud usage data](https://developer.apple.com/documentation/xcode/reviewing-xcode-cloud-usage-data)（使用量の見方）
 - GitHub の issue #68（決めたことの経緯）
