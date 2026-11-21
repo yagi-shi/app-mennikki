@@ -202,15 +202,17 @@ mennikki/
    （例: `gh release list -R actions/checkout`）。出ていれば、feature ブランチでコミットの SHA と版のコメントを更新し、
    `dev_YYYYMM` にマージする。アクションは、タグではなくコミットの SHA で指定する。
    メジャー版が上がったとき（例: v6 → v7）は、変更点を確かめてから、上げるかを指示者と決める
-4. 指示者がビルドを App Store Connect にアップロードし、リリース前の手動テスト（`docs/30_test/test.md`）を行う
-5. テストの結果を `docs/30_test/test.md` に記録する。記録は、そのリリース用ブランチで、`main` へマージする前に行う
+4. 指示者が App Store Connect（Users and Access →「Xcode Cloud」のタブ）で、Xcode Cloud の今月の使用量を確かめる。
+   月 25 時間に近ければ、使い方を指示者と相談する
+5. 指示者がビルドを App Store Connect にアップロードし、リリース前の手動テスト（`docs/30_test/test.md`）を行う
+6. テストの結果を `docs/30_test/test.md` に記録する。記録は、そのリリース用ブランチで、`main` へマージする前に行う
    （ドキュメントだけの変更なので、タグを付けたあとや審査中に入れてよい）
-6. 審査に出すビルドが決まったら、そのビルドを作ったコミットにタグ `v<バージョン>-<ビルド番号>`（例: `v1.1.0-6`）を付け、
+7. 審査に出すビルドが決まったら、そのビルドを作ったコミットにタグ `v<バージョン>-<ビルド番号>`（例: `v1.1.0-6`）を付け、
    `git push origin <タグ名>` で送る。GitHub Release は作らない
-7. `dev_YYYYMM` → `main` の PR を作る。マージは審査に通ってから、「Create a merge commit」で行う
+8. `dev_YYYYMM` → `main` の PR を作る。マージは審査に通ってから、「Create a merge commit」で行う
    （Squash にすると、タグの指すコミットが `main` の履歴から外れる）
-8. リジェクトで再提出するときは、`dev_YYYYMM` で直してビルド番号を上げ、再提出したコミットに新しいタグを付ける
-9. マージしたら、手元の `main` を最新にし、`dev_YYYYMM` を手元と GitHub から消す
+9. リジェクトで再提出するときは、`dev_YYYYMM` で直してビルド番号を上げ、再提出したコミットに新しいタグを付ける
+10. マージしたら、手元の `main` を最新にし、`dev_YYYYMM` を手元と GitHub から消す
 
 ## テストのルール
 - Model / ViewModel / ロジック層は、受け入れ条件に対応するテストを先に書いてから実装する
@@ -228,6 +230,10 @@ xcodebuild test -project mennikki.xcodeproj -scheme mennikki -destination 'platf
 - PR を作ると、Xcode Cloud のワークフロー「PR Tests」が `mennikkiTests` を iPhone 17（iOS 26.5）のシミュレータで動かし、結果を PR に表示する。対象は、向き先が `dev_` で始まるブランチと `main` の PR。ワークフローの設定は Xcode と App Store Connect にあり、リポジトリには入っていない。設定の手順と中身は `docs/60_ci/01_Xcode Cloud の設定手順.md` にある
 - PR は、Xcode Cloud のテストが成功してからマージする。失敗したら、原因を直してから push し直す
 - Xcode の版は、手元と Xcode Cloud で同じにする（今は 26.6）。手元の Xcode を上げるときは、Xcode Cloud のワークフローの版と、上のテストのコマンドのシミュレータの版もあわせて上げる
+- Xcode Cloud を使える時間は、開発者登録に含まれる月 25 時間まで（使わなかった分は持ち越せない。残りが少なくなっても知らせる仕組みはない）。PR にコミットを足すたびにテストが動くので、コミットはまとめてから push する
+- コミットのタイトルや本文に `[ci skip]` を入れない。Xcode Cloud がビルドを飛ばし、テストの結果が届かないので、PR をマージできなくなる
+- Xcode Cloud が止まっているときや、月 25 時間を使い切ったときに限り、指示者が例外（bypass）で PR をマージしてよい。その前に、手元で上のテストのコマンドを動かして成功を確かめ、結果を PR に書く
+- 有料のプランの申し込みなど、費用がかかることは、指示者と相談して決める。有料のプランは、Account Holder が Apple Developer アプリで申し込んだときだけ始まる（使い切っても、自動で有料にはならない）
 
 ## 実機での手動確認が必要なもの
 以下に該当する変更は、自動テストだけで完了扱いにしない
