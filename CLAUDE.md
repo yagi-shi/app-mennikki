@@ -187,6 +187,7 @@ mennikki/
 - push は追跡先を設定せず、`git push origin <ブランチ名>` のようにリモートとブランチを明示する
 - マージ済みのブランチは、手元と GitHub の両方から消す
 - `main` は GitHub のルールセットで、削除と強制 push を禁止している
+- `main` と `dev_` で始まるブランチは、GitHub のルールセット（require-pr-tests）で、Xcode Cloud のテスト（`mennikki | PR Tests`）が成功しないと PR をマージできない
 
 ### マージと issue
 - マージは指示者が GitHub で行う
@@ -224,7 +225,7 @@ mennikki/
 xcodebuild test -project mennikki.xcodeproj -scheme mennikki -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5'
 ```
 
-- PR を作ると、Xcode Cloud のワークフロー「PR Tests」が `mennikkiTests` を iPhone 17（iOS 26.5）のシミュレータで動かし、結果を PR に表示する。対象は、向き先が `dev_` で始まるブランチと `main` の PR。ワークフローの設定は Xcode と App Store Connect にあり、リポジトリには入っていない
+- PR を作ると、Xcode Cloud のワークフロー「PR Tests」が `mennikkiTests` を iPhone 17（iOS 26.5）のシミュレータで動かし、結果を PR に表示する。対象は、向き先が `dev_` で始まるブランチと `main` の PR。ワークフローの設定は Xcode と App Store Connect にあり、リポジトリには入っていない。設定の手順と中身は `docs/60_ci/01_Xcode Cloud の設定手順.md` にある
 - PR は、Xcode Cloud のテストが成功してからマージする。失敗したら、原因を直してから push し直す
 - Xcode の版は、手元と Xcode Cloud で同じにする（今は 26.6）。手元の Xcode を上げるときは、Xcode Cloud のワークフローの版と、上のテストのコマンドのシミュレータの版もあわせて上げる
 
