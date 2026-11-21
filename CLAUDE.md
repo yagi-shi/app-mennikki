@@ -224,6 +224,10 @@ mennikki/
 xcodebuild test -project mennikki.xcodeproj -scheme mennikki -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5'
 ```
 
+- PR を作ると、Xcode Cloud のワークフロー「PR Tests」が `mennikkiTests` を iPhone 17（iOS 26.5）のシミュレータで動かし、結果を PR に表示する。対象は、向き先が `dev_` で始まるブランチと `main` の PR。ワークフローの設定は Xcode と App Store Connect にあり、リポジトリには入っていない
+- PR は、Xcode Cloud のテストが成功してからマージする。失敗したら、原因を直してから push し直す
+- Xcode の版は、手元と Xcode Cloud で同じにする（今は 26.6）。手元の Xcode を上げるときは、Xcode Cloud のワークフローの版と、上のテストのコマンドのシミュレータの版もあわせて上げる
+
 ## 実機での手動確認が必要なもの
 以下に該当する変更は、自動テストだけで完了扱いにしない
 - レイアウト・見た目（画面サイズ差、ダークモード、Dynamic Type）
