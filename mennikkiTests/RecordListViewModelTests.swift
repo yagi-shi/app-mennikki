@@ -125,6 +125,23 @@ struct RecordListViewModelTests {
         #expect(viewModel.records.isEmpty)
     }
 
+    /// 詳細画面でお気に入りや店名を変えると、一覧の記録の並びと件数は同じまま、記録の中身だけが変わる。
+    /// その場合も、カードを描き直せるように知らせることを確かめる
+    @Test("記録の並びと件数が同じまま中身だけが変わっても（お気に入りの切り替えなど）、変わったと知らせる")
+    func contentChangeWithSameOrderNotifiesChange() async throws {
+        let manager = CoreDataManager(inMemory: true)
+        let record = try makeRecord(in: manager, isFavorite: false)
+        let viewModel = RecordListViewModel(scope: .allRecords, dataManager: manager)
+        viewModel.load()
+        var renderedFavoriteStates: [[Bool]] = []
+        observeChanges { renderedFavoriteStates.append(viewModel.records.map(\.isFavorite)) }
+
+        manager.toggleFavorite(record)
+        await waitUntil { renderedFavoriteStates.count >= 2 }
+
+        #expect(renderedFavoriteStates == [[false], [true]])
+    }
+
     /// お気に入り一覧は、表示のたびに読み直して、その場で描き直す。読み直しの知らせでもう 1 回描き直すと、
     /// セルが順に出る動きが途中でやり直されるので、知らせないことを確かめる
     @Test("読み直して記録が変わらなければ、変わったと知らせない（画面が二重に描き直されないように）")
