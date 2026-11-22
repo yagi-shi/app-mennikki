@@ -195,11 +195,15 @@ class RecordDetailViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // 編集画面から戻ったときに、変わった内容を出す。描き直しは observeChanges が行う
+        // 編集画面から戻ったときに、変わった内容を出す
         viewModel.reload()
         if viewModel.shouldClose {
             navigationController?.popViewController(animated: true)
+            return
         }
+        // observeChanges の描き直しは次の順番になり、戻った直後に古い表示が一瞬見えることがあるので、ここですぐ描き直す
+        renderRecord()
+        renderFavoriteButton()
     }
 
     // MARK: - Setup
@@ -489,7 +493,8 @@ class RecordDetailViewController: UIViewController {
             showErrorAlert(message: "お気に入りの変更に失敗しました")
             return
         }
-        // ハートの絵の切り替えは observeChanges が行う
+        // observeChanges の描き直しを待たずに、ハートの絵を切り替えてからバウンスさせる
+        renderFavoriteButton()
         favoriteButton.bounceAnimation(scale: 1.4, duration: 0.12)
     }
 

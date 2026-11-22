@@ -61,8 +61,7 @@ final class RecordDetailViewModel {
 
     /// - Parameters:
     ///   - recordID: 表示する記録の ID
-    ///   - dataManager: 記録の読み書きに使う。アプリ本体では省いて `shared` を使い、テストではインメモリのものを渡す。
-    ///     本番の保存ファイルを 2 か所から開かないように、ここで新しく作らない
+    ///   - dataManager: 記録の読み書きに使う。テストでインメモリのものを渡せるように、外から受け取る
     init(recordID: NSManagedObjectID, dataManager: CoreDataManager = .shared) {
         self.recordID = recordID
         self.dataManager = dataManager
@@ -77,6 +76,7 @@ final class RecordDetailViewModel {
             return
         }
 
+        shouldClose = false
         record = loadedRecord
         storeName = loadedRecord.storeName ?? ""
         ramenType = Self.ramenType(fromRawValue: loadedRecord.ramenType ?? "")
