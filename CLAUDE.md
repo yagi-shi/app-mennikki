@@ -229,7 +229,7 @@ mennikki/
 - テストは Swift Testing（`import Testing`）で書く
 - テストは `mennikkiTests` ターゲットに、`<対象クラス名>Tests.swift` の名前で作る
 - ViewControllerにロジックを追加しない。UIKit非依存の ViewModel（`ViewModels/`）やクラスに切り出してテストする
-- ViewModel は `CoreDataManager` を外から受け取り、自分では作らない（省いたときは `shared` を使う）。本番の保存ファイルを 2 か所から開かないため。テストでは `CoreDataManager(inMemory: true)` を渡す
+- ViewModel は `CoreDataManager` を外から受け取り、自分では作らない。本番の保存ファイルを 2 か所から開かないため。画面から作るときは引数を省いて `shared` を使い、テストでは `CoreDataManager(inMemory: true)` を渡す
 - UIのみの変更は自動テスト不要（代わりに手動確認項目を挙げる）
 - テストでは `CoreDataManager(inMemory: true)` でインメモリのストアを作って使い、`CoreDataManager.shared` には書き込まない
 - テストは次のコマンドで実行する（シミュレータは手元にあるものを指定する）
