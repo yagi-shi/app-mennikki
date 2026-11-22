@@ -17,7 +17,7 @@
 - **データ永続化**: Core Data
 - **レイアウト**: Auto Layout（NSLayoutAnchor）
 - **画像選択**: PHPickerViewController
-- **アーキテクチャ**: MVC
+- **アーキテクチャ**: MVVM（ViewModel は Observation の `@Observable`。#26 で MVC から画面ごとに移行中）
 - **デザインシステム**: カラフル、丸みのあるポップなUI
 
 ---
@@ -36,6 +36,8 @@
 - UITableViewController、UICollectionViewControllerは使用しない
 - UITableView、UICollectionViewは必要に応じてUIViewControllerに配置
 - これにより将来的な機能拡張に柔軟に対応できる
+- ViewController は、表示と画面の移動だけを受け持つ。記録の読み書きや、画面に出す値の組み立ては ViewModel に置く
+- ViewModel の値の変更は `observeChanges(_:)` で受け取る（iOS 17 の UIKit は `@Observable` の変更を自動では受け取れないため）。渡す処理の中では、ViewController を `[weak self]` で参照する
 
 #### Auto Layout
 - `translatesAutoresizingMaskIntoConstraints = false` を設定
@@ -95,6 +97,7 @@
 mennikki/
 ├── Models/              # Core Dataモデル、Enum定義（RamenType, Prefecture）
 ├── Views/               # カスタムビュー、セル（RecordCell, StarRatingView）
+├── ViewModels/          # 画面ごとのViewModel（RecordDetailViewModel）、変更を受け取る observeChanges(_:)
 ├── ViewControllers/     # 画面ごとのViewController
 │   ├── BaseRecordListViewController.swift   # 一覧画面の共通基底クラス
 │   ├── RecordListViewController.swift       # 記録一覧（検索・フィルター付き）
@@ -225,7 +228,8 @@ mennikki/
 - Model / ViewModel / ロジック層は、受け入れ条件に対応するテストを先に書いてから実装する
 - テストは Swift Testing（`import Testing`）で書く
 - テストは `mennikkiTests` ターゲットに、`<対象クラス名>Tests.swift` の名前で作る
-- ViewControllerにロジックを追加しない。UIKit非依存のクラスに切り出してテストする
+- ViewControllerにロジックを追加しない。UIKit非依存の ViewModel（`ViewModels/`）やクラスに切り出してテストする
+- ViewModel は `CoreDataManager` を外から受け取り、自分では作らない（省いたときは `shared` を使う）。本番の保存ファイルを 2 か所から開かないため。テストでは `CoreDataManager(inMemory: true)` を渡す
 - UIのみの変更は自動テスト不要（代わりに手動確認項目を挙げる）
 - テストでは `CoreDataManager(inMemory: true)` でインメモリのストアを作って使い、`CoreDataManager.shared` には書き込まない
 - テストは次のコマンドで実行する（シミュレータは手元にあるものを指定する）
