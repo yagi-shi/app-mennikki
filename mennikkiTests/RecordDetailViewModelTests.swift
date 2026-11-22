@@ -26,6 +26,20 @@ struct RecordDetailViewModelTests {
         #expect(viewModel.shouldClose == false)
     }
 
+    @Test("記録を編集して保存したあとに読み直すと、新しい値になる")
+    func reloadAfterEditShowsNewValues() throws {
+        let manager = CoreDataManager(inMemory: true)
+        let record = try makeRecord(in: manager, storeName: "前の店名")
+        let viewModel = RecordDetailViewModel(recordID: record.objectID, dataManager: manager)
+        viewModel.reload()
+
+        record.storeName = "新しい店名"
+        try #require(manager.viewContext).save()
+        viewModel.reload()
+
+        #expect(viewModel.storeName == "新しい店名")
+    }
+
     @Test("ない記録の ID で読み込むと、画面を閉じることになる")
     func reloadWithMissingRecordClosesScreen() throws {
         let manager = CoreDataManager(inMemory: true)
@@ -118,6 +132,29 @@ struct RecordDetailViewModelTests {
         #expect(viewModel.commentToShow == nil)
     }
 
+    @Test("コメントがあれば、そのコメントを出す")
+    func nonEmptyCommentIsShown() throws {
+        let manager = CoreDataManager(inMemory: true)
+        let record = try makeRecord(in: manager, comment: "あっさり")
+        let viewModel = RecordDetailViewModel(recordID: record.objectID, dataManager: manager)
+
+        viewModel.reload()
+
+        #expect(viewModel.commentToShow == "あっさり")
+    }
+
+    @Test("写真があれば、その写真のデータを出す")
+    func photoDataIsShown() throws {
+        let manager = CoreDataManager(inMemory: true)
+        let photoData = Data([0x01, 0x02, 0x03])
+        let record = try makeRecord(in: manager, photo: photoData)
+        let viewModel = RecordDetailViewModel(recordID: record.objectID, dataManager: manager)
+
+        viewModel.reload()
+
+        #expect(viewModel.photoData == photoData)
+    }
+
     // MARK: - お気に入り
 
     @Test("お気に入りを切り替えると、状態が反転して保存される")
@@ -161,6 +198,7 @@ struct RecordDetailViewModelTests {
         cost: Int16 = 0,
         rating: Int16 = 0,
         comment: String? = nil,
+        photo: Data? = nil,
         prefecture: Prefecture? = nil
     ) throws -> Record {
         try #require(manager.createRecord(
@@ -170,6 +208,7 @@ struct RecordDetailViewModelTests {
             cost: cost,
             rating: rating,
             comment: comment,
+            photo: photo,
             prefecture: prefecture
         ))
     }

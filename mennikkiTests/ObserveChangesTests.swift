@@ -62,9 +62,11 @@ struct ObserveChangesTests {
         observeChanges { receivedCounts.append(model.count) }
 
         model.label = "変わった"
-        await waitUntil { receivedCounts.count == 2 }
+        // 呼び直しが遅れて届く場合も見逃さないように、あとで読んだ値を変え、その知らせまで待ってから確かめる
+        model.count = 1
+        await waitUntil { receivedCounts.count >= 2 }
 
-        #expect(receivedCounts == [0])
+        #expect(receivedCounts == [0, 1])
     }
 
     // MARK: - ヘルパー
