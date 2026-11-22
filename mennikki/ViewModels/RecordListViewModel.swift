@@ -76,7 +76,12 @@ final class RecordListViewModel {
             cacheName: nil
         )
         changeReceiver.onChange = { [weak self] in
-            self?.records = controller.fetchedObjects ?? []
+            guard let self else { return }
+            // お気に入りや店名が変わったときは、記録の並びと件数が同じまま、中身だけが変わる。
+            // records に同じ並びを入れても @Observable は知らせないので、ここでは必ず知らせる
+            self.withMutation(keyPath: \.records) {
+                self.records = controller.fetchedObjects ?? []
+            }
         }
         controller.delegate = changeReceiver
         fetchedResultsController = controller
@@ -102,7 +107,8 @@ final class RecordListViewModel {
             logger.error("Error fetching records: \(error.localizedDescription, privacy: .public)")
         }
         // @Observable は、前と同じ値を入れたときは知らせない（Swift 6.3 で確かめた。古い Swift では知らせていた）。
-        // そのため、読み直して記録が同じなら、画面は描き直されない。この動きは RecordListViewModelTests で確かめている
+        // そのため、読み直して記録が同じなら、画面は描き直されない。この動きは RecordListViewModelTests で確かめている。
+        // 記録の中身の変化は、load() の onChange で知らせる
         records = fetchedResultsController.fetchedObjects ?? []
     }
 
