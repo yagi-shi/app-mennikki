@@ -101,8 +101,8 @@ final class RecordListViewModel {
         } catch {
             logger.error("Error fetching records: \(error.localizedDescription, privacy: .public)")
         }
-        // @Observable は、前と同じ値を入れたときは知らせない（Swift 6.2 から）。
-        // そのため、読み直して記録が同じなら、画面は描き直されない
+        // @Observable は、前と同じ値を入れたときは知らせない（Swift 6.3 で確かめた。古い Swift では知らせていた）。
+        // そのため、読み直して記録が同じなら、画面は描き直されない。この動きは RecordListViewModelTests で確かめている
         records = fetchedResultsController.fetchedObjects ?? []
     }
 
