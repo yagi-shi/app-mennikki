@@ -84,7 +84,7 @@ final class RecordListViewModel {
         performFetch()
     }
 
-    /// 今の条件で、記録を取り出し直す
+    /// 今の条件で、記録を取り出し直す。取り出しの準備（`load()`）がまだなら、準備から行う
     func reload() {
         guard let fetchedResultsController else {
             load()
@@ -101,6 +101,8 @@ final class RecordListViewModel {
         } catch {
             logger.error("Error fetching records: \(error.localizedDescription, privacy: .public)")
         }
+        // @Observable は、前と同じ値を入れたときは知らせない（Swift 6.2 から）。
+        // そのため、読み直して記録が同じなら、画面は描き直されない
         records = fetchedResultsController.fetchedObjects ?? []
     }
 
