@@ -125,6 +125,27 @@ struct RecordListViewModelTests {
         #expect(viewModel.records.isEmpty)
     }
 
+    /// お気に入り一覧は、表示のたびに読み直して、その場で描き直す。読み直しの知らせでもう 1 回描き直すと、
+    /// セルが順に出る動きが途中でやり直されるので、知らせないことを確かめる
+    @Test("読み直して記録が変わらなければ、変わったと知らせない（画面が二重に描き直されないように）")
+    func reloadWithSameRecordsDoesNotNotifyChange() async throws {
+        let manager = CoreDataManager(inMemory: true)
+        try makeRecord(in: manager, storeName: "前からある店")
+        let viewModel = RecordListViewModel(scope: .allRecords, dataManager: manager)
+        viewModel.load()
+        var renderedRecordCounts: [Int] = []
+        observeChanges { renderedRecordCounts.append(viewModel.records.count) }
+
+        viewModel.reload()
+        // 読み直しの知らせが届くとしたら、届くまで待つ。すぐ記録を足すと、2 つの知らせが 1 回の描き直しにまとまり、見逃すため
+        await waitUntil { renderedRecordCounts.count >= 2 }
+        // 知らせが届かなかったことを確かめるために、記録を足して、その知らせが届くまで待ってから確かめる
+        try makeRecord(in: manager, storeName: "足した店")
+        await waitUntil { renderedRecordCounts.last == 2 }
+
+        #expect(renderedRecordCounts == [1, 2])
+    }
+
     // MARK: - 空のときの表示
 
     @Test("記録がなく、絞り込んでいなければ、「記録がない」表示になる")
@@ -230,5 +251,14 @@ struct RecordListViewModelTests {
 
     private func storeNames(of viewModel: RecordListViewModel) -> [String] {
         viewModel.records.map { $0.storeName ?? "" }
+    }
+
+    /// observeChanges の呼び直しはメインの処理の順番待ちに入るので、条件を満たすまで、順番を何度か譲って待つ
+    private func waitUntil(_ condition: () -> Bool) async {
+        let maxYieldCount = 50
+        for _ in 0..<maxYieldCount {
+            if condition() { return }
+            await Task.yield()
+        }
     }
 }
