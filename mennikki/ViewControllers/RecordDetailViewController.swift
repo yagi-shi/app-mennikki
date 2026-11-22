@@ -5,24 +5,16 @@
 
 import UIKit
 import CoreData
-import os
-
-private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.mennikki", category: "RecordDetail")
 
 /// 記録詳細画面
 /// - 通常の白いナビバー（透明overlay廃止）
 /// - 上部: 種類カラー or 写真（固定高さ220pt）
 /// - 下部: 白背景の情報エリア
+///
+/// 記録の読み込みや、画面に出す値の組み立ては RecordDetailViewModel が受け持つ。この画面は、表示と画面の移動だけを行う
 class RecordDetailViewController: UIViewController {
 
     // MARK: - Properties
-
-    private static let visitDateFormatter: DateFormatter = {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy年M月d日（E）"
-        fmt.locale = Locale(identifier: "ja_JP")
-        return fmt
-    }()
 
     private static let defaultHeaderHeight: CGFloat = 220
     private static let maxHeaderHeight: CGFloat = 400
@@ -31,8 +23,9 @@ class RecordDetailViewController: UIViewController {
     /// 情報行の、文字の上下の余白
     private static let infoRowVerticalPadding: CGFloat = 12
 
-    private let recordID: NSManagedObjectID
-    private var record: Record?
+    private let viewModel: RecordDetailViewModel
+    /// ヘッダーに出している写真。同じ写真を読み直さないために覚えておく
+    private var renderedPhotoData: Data?
     private var headerHeightConstraint: NSLayoutConstraint!
     private lazy var favoriteButton: UIButton = {
         let button = UIButton(type: .system)
@@ -176,7 +169,7 @@ class RecordDetailViewController: UIViewController {
     // MARK: - Init
 
     init(record: Record) {
-        self.recordID = record.objectID
+        self.viewModel = RecordDetailViewModel(recordID: record.objectID)
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -186,29 +179,31 @@ class RecordDetailViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        guard let fetched = CoreDataManager.shared.viewContext?.object(with: recordID) as? Record else {
+        viewModel.reload()
+        guard !viewModel.shouldClose else {
             navigationController?.popViewController(animated: true)
             return
         }
-        record = fetched
         setupUI()
         setupConstraints()
         setupNavigationBar()
-        configureWithRecord()
+
+        // ViewModel の値が変わるたびに描き直す。お気に入りの切り替えで写真まで描き直さないように、分けて見る
+        observeChanges { [weak self] in self?.renderRecord() }
+        observeChanges { [weak self] in self?.renderFavoriteButton() }
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        // 編集・削除後の再表示に対応
-        guard let refreshed = try? CoreDataManager.shared.viewContext?.existingObject(with: recordID) as? Record else {
+        // 編集画面から戻ったときに、変わった内容を出す
+        viewModel.reload()
+        if viewModel.shouldClose {
             navigationController?.popViewController(animated: true)
             return
         }
-        record = refreshed
-        // infoStack の既存行をクリアしてから再描画
-        infoStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        configureWithRecord()
-        updateFavoriteButton()
+        // observeChanges の描き直しは次の順番になり、戻った直後に古い表示が一瞬見えることがあるので、ここですぐ描き直す
+        renderRecord()
+        renderFavoriteButton()
     }
 
     // MARK: - Setup
@@ -259,13 +254,10 @@ class RecordDetailViewController: UIViewController {
         deleteButton.accessibilityLabel = "記録を削除"
 
         navigationItem.rightBarButtonItems = [editButton, favoriteBarButton, deleteButton]
-
-        updateFavoriteButton()
     }
 
-    private func updateFavoriteButton() {
-        guard let record else { return }
-        let isFav = record.isFavorite
+    private func renderFavoriteButton() {
+        let isFav = viewModel.isFavorite
         let heartConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
         favoriteButton.setImage(UIImage(systemName: isFav ? "heart.fill" : "heart", withConfiguration: heartConfig), for: .normal)
         favoriteButton.tintColor = isFav ? .appPrimary : .appSecondaryText
@@ -353,96 +345,36 @@ class RecordDetailViewController: UIViewController {
 
     // MARK: - Configuration
 
-    private func configureWithRecord() {
-        guard let record else { return }
-        let rawType = record.ramenType ?? ""
-        let ramenType: RamenType
-        if let parsed = RamenType(rawValue: rawType) {
-            ramenType = parsed
-        } else {
-            logger.warning("不明なラーメン種類: \"\(rawType, privacy: .public)\" → .other にフォールバック")
-            ramenType = .other
-        }
-        let typeColor = UIColor.colorForRamenType(ramenType)
+    private func renderRecord() {
+        let typeColor = UIColor.colorForRamenType(viewModel.ramenType)
 
-        // ヘッダー写真 or カラー背景
-        if let data = record.photo {
-            // まずカラー背景を表示しておく
-            headerImageView.isHidden = true
-            headerPlaceholderIcon.isHidden = false
-            headerView.backgroundColor = typeColor
-
-            // バックグラウンドで画像デコード（大きい写真でのUIフリーズ防止）
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                guard let image = UIImage(data: data) else { return }
-                DispatchQueue.main.async {
-                    guard let self else { return }
-                    self.headerImageView.image = image
-                    self.headerImageView.isHidden = false
-                    self.headerPlaceholderIcon.isHidden = true
-                    self.headerView.backgroundColor = .black
-                    self.updateHeaderHeight(for: image)
-                }
-            }
-        } else {
-            headerImageView.isHidden = true
-            headerPlaceholderIcon.isHidden = false
-            headerView.backgroundColor = typeColor
-            headerHeightConstraint.constant = Self.defaultHeaderHeight
-        }
+        renderHeader(typeColor: typeColor)
 
         // 店名
-        storeNameLabel.text = record.storeName
+        storeNameLabel.text = viewModel.storeName
 
         // 種類タグ
-        typeTagLabel.text = ramenType.rawValue
+        typeTagLabel.text = viewModel.ramenType.rawValue
         typeTagContainer.backgroundColor = typeColor
 
         // 星評価
-        if record.rating > 0 {
-            starRatingView.rating = Int(record.rating)
+        if let rating = viewModel.ratingToShow {
+            starRatingView.rating = rating
             starRatingContainer.isHidden = false
         } else {
             starRatingContainer.isHidden = true
         }
 
-        // 情報行（訪問日・費用）
-        var infoRows: [(icon: String, title: String, value: String, color: UIColor)] = []
-
-        if let prefRaw = record.prefecture, let pref = Prefecture(rawValue: prefRaw) {
-            infoRows.append((
-                icon: "mappin.circle",
-                title: "都道府県",
-                value: pref.rawValue,
-                color: .appPrimary
-            ))
-        }
-
-        if let visitDate = record.visitDate {
-            infoRows.append((
-                icon: "calendar",
-                title: "訪問日",
-                value: Self.visitDateFormatter.string(from: visitDate),
-                color: .appSecondary
-            ))
-        }
-
-        if record.cost > 0 {
-            infoRows.append((
-                icon: "yensign.circle",
-                title: "費用",
-                value: "¥\(record.cost)",
-                color: .appSuccess
-            ))
-        }
-
-        for (i, row) in infoRows.enumerated() {
-            if i > 0 { infoStack.addArrangedSubview(makeDivider()) }
-            infoStack.addArrangedSubview(makeInfoRow(icon: row.icon, title: row.title, value: row.value, color: row.color))
+        // 情報行（都道府県・訪問日・費用）。描き直すたびに、前の行を消してから並べる
+        infoStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        for (index, row) in viewModel.infoRows.enumerated() {
+            if index > 0 { infoStack.addArrangedSubview(makeDivider()) }
+            let style = Self.infoRowStyle(for: row.kind)
+            infoStack.addArrangedSubview(makeInfoRow(icon: style.icon, title: row.title, value: row.value, color: style.color))
         }
 
         // コメント
-        if let comment = record.comment, !comment.isEmpty {
+        if let comment = viewModel.commentToShow {
             commentLabel.text = comment
             commentContainer.isHidden = false
         } else {
@@ -452,6 +384,49 @@ class RecordDetailViewController: UIViewController {
         // アクセシビリティ
         isAccessibilityElement = false
         storeNameLabel.accessibilityTraits = .header
+    }
+
+    /// ヘッダーに、写真か、種類の色の背景を出す
+    private func renderHeader(typeColor: UIColor) {
+        guard let photoData = viewModel.photoData else {
+            renderedPhotoData = nil
+            headerImageView.isHidden = true
+            headerPlaceholderIcon.isHidden = false
+            headerView.backgroundColor = typeColor
+            headerHeightConstraint.constant = Self.defaultHeaderHeight
+            return
+        }
+
+        // 同じ写真を読み直すと、読み終わるまで一瞬カラー背景に戻るので、写真が変わったときだけ読み直す
+        guard photoData != renderedPhotoData else { return }
+        renderedPhotoData = photoData
+
+        // まずカラー背景を表示しておく
+        headerImageView.isHidden = true
+        headerPlaceholderIcon.isHidden = false
+        headerView.backgroundColor = typeColor
+
+        // バックグラウンドで画像デコード（大きい写真でのUIフリーズ防止）
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let image = UIImage(data: photoData) else { return }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.headerImageView.image = image
+                self.headerImageView.isHidden = false
+                self.headerPlaceholderIcon.isHidden = true
+                self.headerView.backgroundColor = .black
+                self.updateHeaderHeight(for: image)
+            }
+        }
+    }
+
+    /// 情報行の種類ごとの、アイコンと色
+    private static func infoRowStyle(for kind: RecordDetailViewModel.InfoRow.Kind) -> (icon: String, color: UIColor) {
+        switch kind {
+        case .prefecture: return (icon: "mappin.circle", color: .appPrimary)
+        case .visitDate: return (icon: "calendar", color: .appSecondary)
+        case .cost: return (icon: "yensign.circle", color: .appSuccess)
+        }
     }
 
     /// 1行情報ビュー（アイコン + タイトル + 値）
@@ -514,18 +489,17 @@ class RecordDetailViewController: UIViewController {
     // MARK: - Actions
 
     @objc private func favoriteButtonTapped() {
-        guard let record else { return }
-        let success = CoreDataManager.shared.toggleFavorite(record)
-        if success {
-            updateFavoriteButton()
-            favoriteButton.bounceAnimation(scale: 1.4, duration: 0.12)
-        } else {
+        guard viewModel.toggleFavorite() else {
             showErrorAlert(message: "お気に入りの変更に失敗しました")
+            return
         }
+        // observeChanges の描き直しを待たずに、ハートの絵を切り替えてからバウンスさせる
+        renderFavoriteButton()
+        favoriteButton.bounceAnimation(scale: 1.4, duration: 0.12)
     }
 
     @objc private func editButtonTapped() {
-        guard let record else { return }
+        guard let record = viewModel.record else { return }
         let editVC = AddRecordViewController(recordToEdit: record)
         let nav = UINavigationController(rootViewController: editVC)
         nav.navigationBar.applyAppStyle()
@@ -534,7 +508,6 @@ class RecordDetailViewController: UIViewController {
     }
 
     @objc private func deleteButtonTapped() {
-        guard let record else { return }
         let alert = UIAlertController(
             title: "記録を削除しますか？",
             message: "この操作は取り消せません",
@@ -543,8 +516,7 @@ class RecordDetailViewController: UIViewController {
         alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel))
         alert.addAction(UIAlertAction(title: "削除", style: .destructive) { [weak self] _ in
             guard let self else { return }
-            let success = CoreDataManager.shared.deleteRecord(record)
-            if success {
+            if self.viewModel.deleteRecord() {
                 self.navigationController?.popViewController(animated: true)
             } else {
                 self.showErrorAlert(message: "記録の削除に失敗しました")
