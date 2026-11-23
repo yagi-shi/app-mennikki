@@ -149,19 +149,46 @@ struct AddRecordViewModelTests {
 
     // MARK: - 更新
 
-    @Test("更新で、その記録だけが変わり、お気に入りの状態は保たれる")
+    @Test("更新で、その記録だけがすべての入力どおりに変わり、お気に入りの状態は保たれる")
     func updateChangesOnlyThatRecordAndKeepsFavorite() throws {
         let manager = CoreDataManager(inMemory: true)
-        let editedRecord = try #require(manager.createRecord(storeName: "編集する店", ramenType: .shoyu, visitDate: Date(), rating: 3, isFavorite: true))
+        let editedRecord = try #require(manager.createRecord(
+            storeName: "編集する店",
+            ramenType: .shoyu,
+            visitDate: Date(timeIntervalSince1970: 1_600_000_000),
+            cost: 800,
+            rating: 3,
+            comment: "あっさり",
+            photo: Data([0x01]),
+            isFavorite: true,
+            prefecture: .hokkaido
+        ))
         _ = try #require(manager.createRecord(storeName: "ほかの店", ramenType: .shio, visitDate: Date(), rating: 2))
+        let newVisitDate = Date(timeIntervalSince1970: 1_700_000_000)
+        let newPhotoData = Data([0x02, 0x03])
+        // 更新に渡し忘れた値を見つけられるように、すべての入力を元の値と違うものにする
         let viewModel = AddRecordViewModel(recordToEdit: editedRecord, dataManager: manager)
         viewModel.storeName = "新しい店名"
+        viewModel.ramenType = .miso
+        viewModel.visitDate = newVisitDate
+        viewModel.costText = "1200"
+        viewModel.rating = 5
+        viewModel.comment = "こってり"
+        viewModel.prefecture = .tokyo
 
-        _ = viewModel.save(photoData: nil)
+        _ = viewModel.save(photoData: newPhotoData)
 
+        #expect(editedRecord.storeName == "新しい店名")
+        #expect(editedRecord.ramenType == RamenType.miso.rawValue)
+        #expect(editedRecord.visitDate == newVisitDate)
+        #expect(editedRecord.cost == 1200)
+        #expect(editedRecord.rating == 5)
+        #expect(editedRecord.comment == "こってり")
+        #expect(editedRecord.prefecture == Prefecture.tokyo.rawValue)
+        #expect(editedRecord.photo == newPhotoData)
+        #expect(editedRecord.isFavorite)
         let storeNames = Set(manager.fetchAllRecords().map { $0.storeName ?? "" })
         #expect(storeNames == ["新しい店名", "ほかの店"])
-        #expect(editedRecord.isFavorite)
     }
 
     @Test("保存に渡した写真のデータが、変換されずにそのまま保存される")
