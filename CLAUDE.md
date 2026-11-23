@@ -29,7 +29,7 @@
 #### Storyboard/XIB不使用
 - **全てのUIをコードで構築する**
 - 初期設定でMain.storyboardを削除し、Info.plistとSceneDelegateを適切に設定
-- UIViewControllerのライフサイクルメソッド内でUIを生成
+- UIViewControllerのライフサイクルメソッド内でUIを生成（UIKit の画面）
 
 #### SwiftUI の画面
 - 新しく作る画面と、#27 で移行した画面は、SwiftUI で作る
