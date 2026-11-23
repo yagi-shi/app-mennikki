@@ -151,7 +151,80 @@ struct CoreDataManagerTests {
         #expect(store.url?.path == "/dev/null")
     }
 
+    // MARK: - ストアを開けたかどうか
+
+    @Test("インメモリのストアを開けたときは、開けたと返す")
+    func inMemoryStoreIsAvailable() {
+        let manager = CoreDataManager(inMemory: true)
+
+        #expect(manager.isStoreAvailable)
+    }
+
+    @Test("保存先を指定すると、その場所にストアを作って開ける")
+    func storeAtGivenURLIsAvailable() throws {
+        let storeURL = try makeTemporaryStoreURL()
+        defer { removeTemporaryDirectory(of: storeURL) }
+        let manager = CoreDataManager(inMemory: false, storeURL: storeURL)
+
+        #expect(manager.isStoreAvailable)
+        let store = try #require(manager.viewContext?.persistentStoreCoordinator?.persistentStores.first)
+        #expect(store.url?.standardizedFileURL == storeURL.standardizedFileURL)
+    }
+
+    @Test("データベースではないファイルが保存先にあるときは、開けなかったと返す")
+    func brokenStoreFileIsNotAvailable() throws {
+        let storeURL = try makeBrokenStoreFile()
+        defer { removeTemporaryDirectory(of: storeURL) }
+        let manager = CoreDataManager(inMemory: false, storeURL: storeURL)
+
+        #expect(manager.isStoreAvailable == false)
+    }
+
+    @Test("開けなかったときは、記録を書き込まず、保存先のファイルを消したり書き換えたり、ほかのファイルを作ったりしない")
+    func brokenStoreFileIsLeftAsIs() throws {
+        let storeURL = try makeBrokenStoreFile()
+        defer { removeTemporaryDirectory(of: storeURL) }
+        let storeDirectory = storeURL.deletingLastPathComponent()
+        let originalData = try Data(contentsOf: storeURL)
+        let originalFileNames = try fileNames(in: storeDirectory)
+        let manager = CoreDataManager(inMemory: false, storeURL: storeURL)
+
+        let createdRecord = manager.createRecord(storeName: "テスト軒", ramenType: .shoyu, visitDate: Date())
+
+        #expect(createdRecord == nil)
+        #expect(manager.fetchAllRecords().isEmpty)
+        #expect(try Data(contentsOf: storeURL) == originalData)
+        // SQLite の作業用のファイル（-wal、-shm）なども、増えていない
+        #expect(try fileNames(in: storeDirectory) == originalFileNames)
+    }
+
     // MARK: - Helper Methods
+
+    /// テストごとの一時フォルダの中の、まだ作られていないストアの場所
+    private func makeTemporaryStoreURL() throws -> URL {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory.appendingPathComponent("mennikki.sqlite")
+    }
+
+    /// データベースではない中身のファイルを、一時フォルダのストアの場所に置く。
+    /// 空のファイルは SQLite が新しいデータベースとして扱うので、中身のあるファイルにする
+    private func makeBrokenStoreFile() throws -> URL {
+        let storeURL = try makeTemporaryStoreURL()
+        let brokenContent = String(repeating: "これはデータベースではありません。", count: 100)
+        try Data(brokenContent.utf8).write(to: storeURL)
+        return storeURL
+    }
+
+    /// フォルダの中にあるファイルの名前
+    private func fileNames(in directory: URL) throws -> Set<String> {
+        Set(try FileManager.default.contentsOfDirectory(atPath: directory.path))
+    }
+
+    /// `makeTemporaryStoreURL()` で作った一時フォルダを、中身ごと消す
+    private func removeTemporaryDirectory(of storeURL: URL) {
+        try? FileManager.default.removeItem(at: storeURL.deletingLastPathComponent())
+    }
 
     /// アプリ本体が使うストア。設定の確認だけに使い、書き込まない
     private func sharedStore() throws -> NSPersistentStore {

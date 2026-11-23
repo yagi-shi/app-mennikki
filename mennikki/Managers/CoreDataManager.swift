@@ -21,10 +21,17 @@ class CoreDataManager {
     /// ストアをメモリ上に作るかどうか
     private let inMemory: Bool
 
-    /// - Parameter inMemory: true の場合、ストアをメモリ上に作り、端末には保存しない（テスト用）。
-    ///   アプリ本体は `shared` を使う
-    init(inMemory: Bool) {
+    /// ストアの保存先。nil のときは、Core Data の既定の場所（アプリ本体の保存先）を使う
+    private let storeURL: URL?
+
+    /// - Parameters:
+    ///   - inMemory: true の場合、ストアをメモリ上に作り、端末には保存しない（テスト用）。
+    ///     アプリ本体は `shared` を使う
+    ///   - storeURL: ストアの保存先（テスト用）。開けなかったときの動きを、本番の保存先を使わずに確かめるために使う。
+    ///     `inMemory` が true のときは使わない。省くと、アプリ本体と同じ既定の場所になる
+    init(inMemory: Bool, storeURL: URL? = nil) {
         self.inMemory = inMemory
+        self.storeURL = storeURL
     }
 
     // MARK: - Core Data Stack
@@ -57,6 +64,9 @@ class CoreDataManager {
             // 保存先を /dev/null にすると、SQLite ストアがメモリ上に作られる
             description?.url = URL(fileURLWithPath: "/dev/null")
         } else {
+            if let storeURL = self.storeURL {
+                description?.url = storeURL
+            }
             // 端末ロック中のデータアクセスを防止
             description?.setOption(
                 FileProtectionType.complete as NSObject,
@@ -72,6 +82,17 @@ class CoreDataManager {
         }
         return container
     }()
+
+    /// 保存したデータ（ストア）を開けたかどうか。まだ開いていなければ、ここで開く。
+    /// 開けなかったときは、記録の読み書きをしない（`viewContext` が nil を返す）
+    var isStoreAvailable: Bool {
+        dispatchPrecondition(condition: .onQueue(.main))
+        // persistentContainer へのアクセスで lazy 初期化 → loadPersistentStores → isStoreLoaded が決まる。
+        // SQLite のストアは既定で同期で開く（shouldAddStoreAsynchronously が false）ので、ここで値が決まっている。
+        // 非同期で開くように変えると、開けるストアでも false を返すので、変えるときはこの処理も見直す
+        _ = persistentContainer
+        return isStoreLoaded
+    }
 
     /// View Context（メインスレッド用）。ストア未読み込み時は nil を返す。
     var viewContext: NSManagedObjectContext? {
