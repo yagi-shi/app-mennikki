@@ -70,6 +70,7 @@
 - UIKit の定義にもある色は、SwiftUI の定義でも同じ名前・同じ値にする（`Color+AppTests` で確かめる）。UIKit の定義は、#27 で UIKit の画面がなくなったときに消す
 - フォントは定義を使い、その場でサイズを書かない（`Font.system(size:)`、`UIFont.rounded(ofSize:weight:)`、`UIFont.systemFont(ofSize:)` を画面のコードで直接使わない）。新しい用途のフォントが必要なときは、先に定義を追加する
 - フォントの定義は、iOS の標準の文字サイズの段階（テキストスタイル）から作り（SwiftUI は `Font.rounded(_:weight:)`、UIKit は `UIFont.rounded(_:weight:)`）、独自のサイズは作らない（例外はタブバーのみ）。SwiftUI のフォントの定義は、画面で使うものから足す
+- 例外として、SF Symbols のアイコンの大きさは、文字ではないのでフォントの定義を使わない。SwiftUI の画面では、View の定数（例: `private enum Layout`）に書いた大きさで `.font(.system(size:weight:))` を使う。`.resizable()` で引き伸ばさない。アイコンの大きさは、UIKit の画面と同じく、「テキストサイズ」の設定では変えない。#27 のあとに、アイコンも文字と一緒に大きくする形に変え、この例外をなくす（README の TODO）
 - 再利用可能なコンポーネントを作成（ボタン、カード、タグなど）
 
 ### 4. データ管理
@@ -103,14 +104,14 @@
 
 ```
 mennikki/
-├── Models/              # Core Dataモデル、Enum定義（RamenType, Prefecture, RootScreen）
-├── Views/               # カスタムビュー、セル（RecordCell, StarRatingView）、SwiftUI の画面（StoreLoadErrorView）
+├── Models/              # Core Dataモデル、Enum定義（RamenType, Prefecture, RootScreen）、詳細画面のヘッダーの高さ（RecordDetailHeader）
+├── Views/               # カスタムビュー、セル（RecordCell, StarRatingView）、SwiftUI の画面（StoreLoadErrorView, RecordDetailView）
 ├── ViewModels/          # 画面ごとのViewModel（RecordListViewModel, RecordDetailViewModel, AddRecordViewModel）、変更を受け取る observeChanges(_:)
 ├── ViewControllers/     # 画面ごとのViewController
 │   ├── BaseRecordListViewController.swift   # 一覧画面の共通基底クラス
 │   ├── RecordListViewController.swift       # 記録一覧（検索・フィルター付き）
 │   ├── FavoriteListViewController.swift     # お気に入り一覧
-│   ├── RecordDetailViewController.swift     # 記録詳細
+│   ├── RecordDetailViewController.swift     # 記録詳細（SwiftUI の RecordDetailView を入れる、#27 の移行中のつなぎ）
 │   └── AddRecordViewController.swift        # 新規作成・編集（共用）
 ├── Managers/            # CoreDataManager（シングルトン）
 ├── Extensions/          # Color, Font（SwiftUI）、UIColor, UIFont, UIView, UINavigationBar, UITabBar 拡張
