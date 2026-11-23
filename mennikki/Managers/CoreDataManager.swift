@@ -86,7 +86,10 @@ class CoreDataManager {
     /// 保存したデータ（ストア）を開けたかどうか。まだ開いていなければ、ここで開く。
     /// 開けなかったときは、記録の読み書きをしない（`viewContext` が nil を返す）
     var isStoreAvailable: Bool {
-        // persistentContainer へのアクセスで lazy 初期化 → loadPersistentStores → isStoreLoaded が決まる
+        dispatchPrecondition(condition: .onQueue(.main))
+        // persistentContainer へのアクセスで lazy 初期化 → loadPersistentStores → isStoreLoaded が決まる。
+        // SQLite のストアは既定で同期で開く（shouldAddStoreAsynchronously が false）ので、ここで値が決まっている。
+        // 非同期で開くように変えると、開けるストアでも false を返すので、変えるときはこの処理も見直す
         _ = persistentContainer
         return isStoreLoaded
     }
