@@ -229,7 +229,8 @@ class AddRecordViewController: UIViewController {
         if viewModel.isEditMode {
             loadExistingData()
         } else {
-            // 新規作成では、訪問日の欄の初期値（今日）を、入力の初期値にする
+            // 新規作成では、訪問日の欄の初期値（今日）を、入力の初期値にする。
+            // 保存する日付を、画面に出ている日付と同じにするため（移行前は、保存のときに欄から読んでいた）
             viewModel.visitDate = visitDatePicker.date
         }
     }
