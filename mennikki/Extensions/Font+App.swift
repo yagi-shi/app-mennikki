@@ -22,8 +22,28 @@ extension Font {
         rounded(.title2, weight: .heavy)
     }
 
+    /// 詳細画面の店舗名
+    static var appDetailTitle: Font {
+        rounded(.title2, weight: .heavy)
+    }
+
     /// 本文、説明文
     static var appBody: Font {
         rounded(.subheadline, weight: .medium)
+    }
+
+    /// 詳細画面の都道府県・訪問日・費用の値
+    static var appInfoValue: Font {
+        rounded(.subheadline, weight: .bold)
+    }
+
+    /// 詳細画面の項目名（「都道府県」など）
+    static var appCaption: Font {
+        rounded(.footnote, weight: .medium)
+    }
+
+    /// 小さいタグ・バッジ
+    static var appTag: Font {
+        rounded(.caption, weight: .bold)
     }
 }

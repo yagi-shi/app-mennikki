@@ -23,4 +23,23 @@ extension Color {
     static let appBorder     = Color(red: 229/255, green: 229/255, blue: 229/255)
     static let appFieldBorder = Color(red: 149/255, green: 165/255, blue: 166/255, opacity: 0.2)
     static let appCardBorder  = Color(red: 235/255, green: 235/255, blue: 235/255)
+
+    // MARK: - Ramen Type Colors
+
+    /// RamenTypeに対応するカラー（タグ・カード上部の背景）
+    static func colorForRamenType(_ type: RamenType) -> Color {
+        switch type {
+        case .shoyu:    return Color(red: 212/255, green: 133/255, blue: 42/255)  // amber
+        case .shio:     return Color(red: 28/255,  green: 176/255, blue: 246/255) // blue
+        case .miso:     return Color(red: 245/255, green: 166/255, blue: 35/255)  // yellow-amber
+        case .tonkotsu: return Color(red: 240/255, green: 128/255, blue: 128/255) // light coral
+        case .niboshi:  return Color(red: 70/255,  green: 100/255, blue: 150/255) // dark navy
+        case .paitan:   return Color(red: 247/255, green: 197/255, blue: 159/255) // warm cream
+        case .tsukemen: return Color(red: 232/255, green: 131/255, blue: 12/255)  // orange
+        case .mazemen:  return Color(red: 120/255, green: 80/255,  blue: 40/255)  // dark brown
+        case .jiro:     return Color(red: 139/255, green: 115/255, blue: 85/255)  // tan brown
+        case .iekei:    return Color(red: 192/255, green: 57/255,  blue: 43/255)  // deep red
+        case .other:    return Color(red: 175/255, green: 175/255, blue: 175/255) // gray
+        }
+    }
 }
