@@ -6,16 +6,16 @@
 
 **プラットフォーム:** iOS 17.0+
 **開発言語:** Swift
-**UI:** UIKit（コードベース、Storyboard不使用）
+**UI:** SwiftUI（#27 で UIKit から画面ごとに移行中。コードベース、Storyboard不使用）
 **データ永続化:** Core Data（ローカルのみ）
 
 ---
 
 ## 技術スタック
 
-- **UI構築**: UIKit（プログラマティック、Storyboard/XIB不使用）
+- **UI構築**: SwiftUI（#27 で UIKit から画面ごとに移行中。移行していない画面は UIKit のプログラマティックな実装。Storyboard/XIB不使用）
 - **データ永続化**: Core Data
-- **レイアウト**: Auto Layout（NSLayoutAnchor）
+- **レイアウト**: SwiftUI のスタック（VStack、HStack など）。UIKit の画面は Auto Layout（NSLayoutAnchor）
 - **画像選択**: PHPickerViewController
 - **アーキテクチャ**: MVVM（ViewModel は Observation の `@Observable`）
 - **デザインシステム**: カラフル、丸みのあるポップなUI
@@ -31,15 +31,21 @@
 - 初期設定でMain.storyboardを削除し、Info.plistとSceneDelegateを適切に設定
 - UIViewControllerのライフサイクルメソッド内でUIを生成
 
-#### ViewControllerの使用方針
-- **全ての画面でUIViewControllerを使用する**
+#### SwiftUI の画面
+- 新しく作る画面と、#27 で移行した画面は、SwiftUI で作る
+- #27 の移行中は、UIKit の画面（`SceneDelegate` を含む）から SwiftUI の画面を出すときに、`UIHostingController` に入れる
+- 画面の View は、表示と画面の移動だけを受け持つ。記録の読み書きや、画面に出す値の組み立ては、ViewModel やモデルの型に置く
+- 余白や大きさの数値は、View の中の定数（例: `private enum Layout`）にまとめ、マジックナンバーを避ける
+
+#### ViewControllerの使用方針（UIKit の画面）
+- **UIKit の全ての画面でUIViewControllerを使用する**
 - UITableViewController、UICollectionViewControllerは使用しない
 - UITableView、UICollectionViewは必要に応じてUIViewControllerに配置
 - これにより将来的な機能拡張に柔軟に対応できる
 - ViewController は、表示と画面の移動だけを受け持つ。記録の読み書きや、画面に出す値の組み立ては ViewModel に置く
 - ViewModel の値の変更は `observeChanges(_:)` で受け取る（iOS 17 の UIKit は `@Observable` の変更を自動では受け取れないため）。渡す処理の中では、ViewController を `[weak self]` で参照する
 
-#### Auto Layout
+#### Auto Layout（UIKit の画面）
 - `translatesAutoresizingMaskIntoConstraints = false` を設定
 - **NSLayoutAnchor** を使用した制約設定を推奨
 - 複雑なレイアウトには **UIStackView** を活用
@@ -60,9 +66,10 @@
 
 - **カラー、フォント、スタイルは定義済みのデザインシステムを使用**
 - 詳細は `docs/10_design/04_デザインガイドライン.md` を参照
-- UIColor extension、UIFont extensionで定義されたスタイルを使用
-- フォントは `UIFont+App.swift` の定義を使い、その場でサイズを書かない（`UIFont.rounded(ofSize:weight:)` や `UIFont.systemFont(ofSize:)` を画面のコードで直接使わない）。新しい用途のフォントが必要なときは、先に定義を追加する
-- フォントの定義は、iOS の標準の文字サイズの段階（テキストスタイル）から `UIFont.rounded(_:weight:)` で作り、独自のサイズは作らない（例外はタブバーのみ）
+- SwiftUI の画面では `Color+App.swift`、`Font+App.swift`（Color、Font の extension）の定義を使う。UIKit の画面では `UIColor+App.swift`、`UIFont+App.swift`（UIColor、UIFont の extension）の定義を使う
+- 色は、SwiftUI と UIKit の定義で、同じ名前・同じ値にする（`Color+AppTests` で確かめる）。UIKit の定義は、#27 で UIKit の画面がなくなったときに消す
+- フォントは定義を使い、その場でサイズを書かない（`Font.system(size:)`、`UIFont.rounded(ofSize:weight:)`、`UIFont.systemFont(ofSize:)` を画面のコードで直接使わない）。新しい用途のフォントが必要なときは、先に定義を追加する
+- フォントの定義は、iOS の標準の文字サイズの段階（テキストスタイル）から作り（SwiftUI は `Font.rounded(_:weight:)`、UIKit は `UIFont.rounded(_:weight:)`）、独自のサイズは作らない（例外はタブバーのみ）。SwiftUI のフォントの定義は、画面で使うものから足す
 - 再利用可能なコンポーネントを作成（ボタン、カード、タグなど）
 
 ### 4. データ管理
@@ -96,8 +103,8 @@
 
 ```
 mennikki/
-├── Models/              # Core Dataモデル、Enum定義（RamenType, Prefecture）
-├── Views/               # カスタムビュー、セル（RecordCell, StarRatingView）
+├── Models/              # Core Dataモデル、Enum定義（RamenType, Prefecture, RootScreen）
+├── Views/               # カスタムビュー、セル（RecordCell, StarRatingView）、SwiftUI の画面（StoreLoadErrorView）
 ├── ViewModels/          # 画面ごとのViewModel（RecordListViewModel, RecordDetailViewModel, AddRecordViewModel）、変更を受け取る observeChanges(_:)
 ├── ViewControllers/     # 画面ごとのViewController
 │   ├── BaseRecordListViewController.swift   # 一覧画面の共通基底クラス
@@ -106,7 +113,7 @@ mennikki/
 │   ├── RecordDetailViewController.swift     # 記録詳細
 │   └── AddRecordViewController.swift        # 新規作成・編集（共用）
 ├── Managers/            # CoreDataManager（シングルトン）
-├── Extensions/          # UIColor, UIFont, UIView, UINavigationBar, UITabBar 拡張
+├── Extensions/          # Color, Font（SwiftUI）、UIColor, UIFont, UIView, UINavigationBar, UITabBar 拡張
 └── Resources/           # Assets、Core Dataモデルファイル
 ```
 
@@ -229,7 +236,7 @@ mennikki/
 - Model / ViewModel / ロジック層は、受け入れ条件に対応するテストを先に書いてから実装する
 - テストは Swift Testing（`import Testing`）で書く
 - テストは `mennikkiTests` ターゲットに、`<対象クラス名>Tests.swift` の名前で作る
-- ViewControllerにロジックを追加しない。UIKit非依存の ViewModel（`ViewModels/`）やクラスに切り出してテストする
+- ViewController と SwiftUI の View にロジックを追加しない。UIKit と SwiftUI に依存しない ViewModel（`ViewModels/`）やクラスに切り出してテストする
 - ViewModel は `CoreDataManager` を外から受け取り、自分では作らない。本番の保存ファイルを 2 か所から開かないため。画面から作るときは引数を省いて `shared` を使い、テストでは `CoreDataManager(inMemory: true)` を渡す
 - UIのみの変更は自動テスト不要（代わりに手動確認項目を挙げる）
 - テストでは `CoreDataManager(inMemory: true)` でインメモリのストアを作って使い、`CoreDataManager.shared` には書き込まない
