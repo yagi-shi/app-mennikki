@@ -153,7 +153,7 @@ struct AddRecordViewModelTests {
     func updateChangesOnlyThatRecordAndKeepsFavorite() throws {
         let manager = CoreDataManager(inMemory: true)
         let editedRecord = try #require(manager.createRecord(storeName: "編集する店", ramenType: .shoyu, visitDate: Date(), rating: 3, isFavorite: true))
-        try #require(manager.createRecord(storeName: "ほかの店", ramenType: .shio, visitDate: Date(), rating: 2))
+        _ = try #require(manager.createRecord(storeName: "ほかの店", ramenType: .shio, visitDate: Date(), rating: 2))
         let viewModel = AddRecordViewModel(recordToEdit: editedRecord, dataManager: manager)
         viewModel.storeName = "新しい店名"
 
@@ -181,8 +181,8 @@ struct AddRecordViewModelTests {
     @Test("新規作成で記録の総数が 3 件になったら、ストア評価を頼む")
     func createReachingMilestoneRequestsReview() throws {
         let manager = CoreDataManager(inMemory: true)
-        try #require(manager.createRecord(storeName: "1 件目", ramenType: .shoyu, visitDate: Date()))
-        try #require(manager.createRecord(storeName: "2 件目", ramenType: .shoyu, visitDate: Date()))
+        _ = try #require(manager.createRecord(storeName: "1 件目", ramenType: .shoyu, visitDate: Date()))
+        _ = try #require(manager.createRecord(storeName: "2 件目", ramenType: .shoyu, visitDate: Date()))
         let viewModel = makeValidNewViewModel(dataManager: manager)
 
         #expect(viewModel.save(photoData: nil) == .saved(shouldRequestReview: true))
@@ -191,8 +191,8 @@ struct AddRecordViewModelTests {
     @Test("更新では、記録の総数が節目でも、ストア評価を頼まない")
     func updateDoesNotRequestReview() throws {
         let manager = CoreDataManager(inMemory: true)
-        try #require(manager.createRecord(storeName: "1 件目", ramenType: .shoyu, visitDate: Date()))
-        try #require(manager.createRecord(storeName: "2 件目", ramenType: .shoyu, visitDate: Date()))
+        _ = try #require(manager.createRecord(storeName: "1 件目", ramenType: .shoyu, visitDate: Date()))
+        _ = try #require(manager.createRecord(storeName: "2 件目", ramenType: .shoyu, visitDate: Date()))
         let record = try #require(manager.createRecord(storeName: "3 件目", ramenType: .shoyu, visitDate: Date(), rating: 3))
         let viewModel = AddRecordViewModel(recordToEdit: record, dataManager: manager)
 
@@ -243,8 +243,9 @@ struct AddRecordViewModelTests {
     // MARK: - ヘルパー
 
     /// すべての入力が正しい、新規作成の ViewModel を作る。テストでは、確かめたい入力だけを変える
-    private func makeValidNewViewModel(dataManager: CoreDataManager = CoreDataManager(inMemory: true)) -> AddRecordViewModel {
-        let viewModel = AddRecordViewModel(dataManager: dataManager)
+    /// - Parameter dataManager: 省いたときは、新しいインメモリのストアを使う
+    private func makeValidNewViewModel(dataManager: CoreDataManager? = nil) -> AddRecordViewModel {
+        let viewModel = AddRecordViewModel(dataManager: dataManager ?? CoreDataManager(inMemory: true))
         viewModel.storeName = "テスト軒"
         viewModel.ramenType = .shoyu
         viewModel.rating = 4
