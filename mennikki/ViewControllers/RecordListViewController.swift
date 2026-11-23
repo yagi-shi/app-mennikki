@@ -6,24 +6,11 @@
 //
 
 import UIKit
-import CoreData
-import os
-
-private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.mennikki", category: "RecordList")
 
 /// 記録一覧画面
 class RecordListViewController: BaseRecordListViewController {
 
     // MARK: - Properties
-
-    private var selectedRamenTypes: [RamenType] = []
-    private var selectedPrefecture: Prefecture?
-    private var searchText: String = ""
-
-    /// 現在の絞り込み条件
-    private var currentFilter: RecordListFilter {
-        RecordListFilter(searchText: searchText, selectedRamenTypes: selectedRamenTypes, selectedPrefecture: selectedPrefecture)
-    }
 
     // フィルターボタン（適用中かどうかで見た目を切り替える）
     private var typeFilterButton: UIBarButtonItem?
@@ -126,34 +113,13 @@ class RecordListViewController: BaseRecordListViewController {
         return button
     }()
 
-    // MARK: - Base Class Configuration
+    // MARK: - Init
 
-    override var emptyStateIconName: String { "bowl.fill" }
-    // 絞り込みで 0 件のときに「記録が消えた」と誤解されないよう、文言を分ける
-    override var emptyStateTitleText: String {
-        currentFilter.isNarrowing ? "条件に合う記録がありません" : "まだラーメンの記録がありません"
-    }
-    override var emptyStateSubTitleText: String {
-        currentFilter.isNarrowing ? "検索やフィルターを解除すると、すべての記録が表示されます" : "＋ボタンから最初の記録を追加しましょう！"
+    init() {
+        super.init(scope: .allRecords)
     }
 
-    override func fetchPredicate() -> NSPredicate? {
-        var predicates: [NSPredicate] = []
-
-        if !searchText.isEmpty {
-            predicates.append(NSPredicate(format: "storeName CONTAINS[cd] %@", searchText))
-        }
-        if !selectedRamenTypes.isEmpty {
-            let typeStrings = selectedRamenTypes.map { $0.rawValue }
-            predicates.append(NSPredicate(format: "ramenType IN %@", typeStrings))
-        }
-        if let prefecture = selectedPrefecture {
-            predicates.append(NSPredicate(format: "prefecture == %@", prefecture.rawValue))
-        }
-
-        guard !predicates.isEmpty else { return nil }
-        return NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
-    }
+    required init?(coder: NSCoder) { fatalError() }
 
     // MARK: - Lifecycle
 
@@ -253,12 +219,13 @@ class RecordListViewController: BaseRecordListViewController {
         navigationItem.rightBarButtonItems = [typeFilterButton, prefFilterButton]
         self.typeFilterButton = typeFilterButton
         self.prefFilterButton = prefFilterButton
-        updateFilterButtons()
+        // 絞り込みの条件が変わるたびに、フィルターのボタンの見た目を描き直す
+        observeChanges { [weak self] in self?.updateFilterButtons() }
     }
 
     /// 適用中のフィルターのアイコンを、塗りつぶしの赤色にする
     private func updateFilterButtons() {
-        let filter = currentFilter
+        let filter = viewModel.filter
         applyFilterAppearance(to: typeFilterButton, symbolName: "line.3.horizontal.decrease.circle", isActive: filter.isRamenTypeFilterActive)
         applyFilterAppearance(to: prefFilterButton, symbolName: "mappin.circle", isActive: filter.isPrefectureFilterActive)
     }
@@ -269,43 +236,22 @@ class RecordListViewController: BaseRecordListViewController {
         button?.accessibilityValue = isActive ? "適用中" : nil
     }
 
-    // MARK: - Refresh
-
-    private func refreshData() {
-        resetAnimatedCells()
-
-        if let frc = fetchedResultsController {
-            frc.fetchRequest.predicate = fetchPredicate()
-            do {
-                try frc.performFetch()
-            } catch {
-                logger.error("Error re-fetching records: \(error.localizedDescription, privacy: .public)")
-            }
-        } else {
-            setupFetchedResultsController()
-        }
-
-        collectionView.reloadData()
-        updateEmptyState()
-        updateFilterButtons()
-    }
-
     // MARK: - Search Actions
 
     @objc private func searchTextChanged() {
-        searchText = searchTextField.text ?? ""
+        // 打ち終わるまで 0.3 秒待ってから絞り込む（1 文字ごとに取り出し直さないため）
         searchDebounceTimer?.invalidate()
         searchDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
-            self?.refreshData()
+            guard let self else { return }
+            self.viewModel.setSearchText(self.searchTextField.text ?? "")
         }
     }
 
     @objc private func searchCancelTapped() {
         searchTextField.text = ""
         searchTextField.resignFirstResponder()
-        searchText = ""
         setCancelButtonVisible(false)
-        refreshData()
+        viewModel.setSearchText("")
     }
 
     private func setCancelButtonVisible(_ visible: Bool) {
@@ -344,10 +290,7 @@ class RecordListViewController: BaseRecordListViewController {
 
     @objc private func filterButtonTapped() {
         // 記録に存在する種類と、選んでいる種類（記録がなくなったものを含む）だけを表示（軽量フェッチ）
-        let options = RamenType.filterOptions(
-            registered: CoreDataManager.shared.fetchRegisteredRamenTypes(),
-            selected: selectedRamenTypes
-        )
+        let options = viewModel.ramenTypeOptions()
 
         guard !options.isEmpty else {
             let alert = UIAlertController(
@@ -363,29 +306,20 @@ class RecordListViewController: BaseRecordListViewController {
         let alert = UIAlertController(title: "ラーメンの種類でフィルター", message: "選択してください", preferredStyle: .actionSheet)
 
         for type in options {
-            let isSelected = selectedRamenTypes.contains(type)
+            let isSelected = viewModel.filter.selectedRamenTypes.contains(type)
             let title = isSelected ? "✓ \(type.rawValue)" : type.rawValue
 
             let action = UIAlertAction(title: title, style: .default) { [weak self] _ in
-                guard let self = self else { return }
-
-                if let index = self.selectedRamenTypes.firstIndex(of: type) {
-                    self.selectedRamenTypes.remove(at: index)
-                } else {
-                    self.selectedRamenTypes.append(type)
-                }
-
-                self.refreshData()
+                self?.viewModel.toggleRamenType(type)
             }
 
             alert.addAction(action)
         }
 
         // クリアアクション
-        if !selectedRamenTypes.isEmpty {
+        if viewModel.filter.isRamenTypeFilterActive {
             let clearAction = UIAlertAction(title: "フィルターをクリア", style: .destructive) { [weak self] _ in
-                self?.selectedRamenTypes.removeAll()
-                self?.refreshData()
+                self?.viewModel.clearRamenTypes()
             }
             alert.addAction(clearAction)
         }
@@ -403,10 +337,7 @@ class RecordListViewController: BaseRecordListViewController {
 
     @objc private func prefectureFilterButtonTapped() {
         // 記録に存在する都道府県のみ抽出（軽量フェッチ）
-        let prefStrings = CoreDataManager.shared.fetchDistinctPrefectures()
-        let uniquePrefectures = prefStrings
-            .compactMap { Prefecture(rawValue: $0) }
-            .sorted { Prefecture.allCases.firstIndex(of: $0) ?? 0 < Prefecture.allCases.firstIndex(of: $1) ?? 0 }
+        let uniquePrefectures = viewModel.prefectureOptions()
 
         guard !uniquePrefectures.isEmpty else {
             let alert = UIAlertController(
@@ -422,25 +353,18 @@ class RecordListViewController: BaseRecordListViewController {
         let alert = UIAlertController(title: "都道府県でフィルター", message: "選択してください", preferredStyle: .actionSheet)
 
         for prefecture in uniquePrefectures {
-            let isSelected = selectedPrefecture == prefecture
+            let isSelected = viewModel.filter.selectedPrefecture == prefecture
             let title = isSelected ? "✓ \(prefecture.rawValue)" : prefecture.rawValue
 
             let action = UIAlertAction(title: title, style: .default) { [weak self] _ in
-                guard let self = self else { return }
-                if self.selectedPrefecture == prefecture {
-                    self.selectedPrefecture = nil
-                } else {
-                    self.selectedPrefecture = prefecture
-                }
-                self.refreshData()
+                self?.viewModel.togglePrefecture(prefecture)
             }
             alert.addAction(action)
         }
 
-        if selectedPrefecture != nil {
+        if viewModel.filter.isPrefectureFilterActive {
             let clearAction = UIAlertAction(title: "フィルターをクリア", style: .destructive) { [weak self] _ in
-                self?.selectedPrefecture = nil
-                self?.refreshData()
+                self?.viewModel.clearPrefecture()
             }
             alert.addAction(clearAction)
         }

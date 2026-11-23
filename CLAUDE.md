@@ -50,9 +50,10 @@
 - Core DataスタックはAppDelegateまたはSceneDelegateで初期化
 - **NSPersistentContainer** を使用
 - バックグラウンドコンテキストでのデータ操作を考慮
-- **NSFetchedResultsController** を使用してUIと連携
-  - NSFetchedResultsControllerDelegateで変更を検知
-  - controllerDidChangeContent(_:)でcollectionView.reloadData()を呼び出し
+- 一覧の記録は、ViewModel が **NSFetchedResultsController** で取り出す（`RecordListViewModel`）
+  - NSFetchedResultsControllerDelegateで変更を検知し、controllerDidChangeContent(_:)で ViewModel の記録の配列を更新する
+  - ViewController は `observeChanges(_:)` で配列の変更を受け取り、collectionView.reloadData()を呼び出す
+  - collectionView のデータソースは、描き直したときに受け取った配列の写しを使う（ViewModel の配列が先に変わっても、collectionView の件数とずれないように）
   - より詳細な制御が必要な場合は、performBatchUpdates(_:completion:)を使用
 
 ### 3. デザインシステム
@@ -97,7 +98,7 @@
 mennikki/
 ├── Models/              # Core Dataモデル、Enum定義（RamenType, Prefecture）
 ├── Views/               # カスタムビュー、セル（RecordCell, StarRatingView）
-├── ViewModels/          # 画面ごとのViewModel（RecordDetailViewModel）、変更を受け取る observeChanges(_:)
+├── ViewModels/          # 画面ごとのViewModel（RecordListViewModel, RecordDetailViewModel）、変更を受け取る observeChanges(_:)
 ├── ViewControllers/     # 画面ごとのViewController
 │   ├── BaseRecordListViewController.swift   # 一覧画面の共通基底クラス
 │   ├── RecordListViewController.swift       # 記録一覧（検索・フィルター付き）

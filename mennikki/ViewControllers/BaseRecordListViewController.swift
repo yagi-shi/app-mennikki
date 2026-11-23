@@ -4,21 +4,21 @@
 //
 
 import UIKit
-import CoreData
-import os
-
-private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.mennikki", category: "RecordList")
 
 /// RecordListViewController と FavoriteListViewController の共通基底クラス
 /// - 2列グリッドの CollectionView
 /// - 空状態表示
 /// - スタガーアニメーション
-/// - NSFetchedResultsController デリゲート
+///
+/// 記録の取り出しと絞り込みは RecordListViewModel が受け持つ。この画面は、表示と画面の移動だけを行う
 class BaseRecordListViewController: UIViewController {
 
     // MARK: - Properties
 
-    var fetchedResultsController: NSFetchedResultsController<Record>?
+    let viewModel: RecordListViewModel
+    /// collectionView に出している記録。ViewModel の記録が先に変わっても、collectionView の件数とずれないように、
+    /// 描き直したときの写しを使う
+    private var displayedRecords: [Record] = []
     private var animatedCells = Set<IndexPath>()
 
     // MARK: - UI Components
@@ -78,19 +78,16 @@ class BaseRecordListViewController: UIViewController {
         return stackView
     }()
 
+    // MARK: - Init
+
+    init(scope: RecordListViewModel.Scope) {
+        self.viewModel = RecordListViewModel(scope: scope)
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
     // MARK: - Subclass Configuration (Override these)
-
-    /// 空状態のアイコン（SF Symbols 名）
-    var emptyStateIconName: String { "questionmark.circle" }
-
-    /// 空状態のタイトル
-    var emptyStateTitleText: String { "" }
-
-    /// 空状態のサブタイトル
-    var emptyStateSubTitleText: String { "" }
-
-    /// FRC 用の NSPredicate（サブクラスでオーバーライド）
-    func fetchPredicate() -> NSPredicate? { nil }
 
     /// サブクラスで追加の制約やビューを設定するフック
     func setupAdditionalUI() {}
@@ -107,8 +104,10 @@ class BaseRecordListViewController: UIViewController {
         setupBaseConstraints()
         setupAdditionalUI()
         setupAdditionalConstraints()
-        setupFetchedResultsController()
-        updateEmptyState()
+
+        viewModel.load()
+        // 記録が変わるたびに描き直す（記録の追加や削除、絞り込みの変更）
+        observeChanges { [weak self] in self?.renderRecords() }
     }
 
     // MARK: - Setup
@@ -117,11 +116,6 @@ class BaseRecordListViewController: UIViewController {
         view.backgroundColor = .appBackground
         view.addSubview(collectionView)
         view.addSubview(emptyStateStackView)
-
-        let config = UIImage.SymbolConfiguration(pointSize: 80, weight: .regular)
-        emptyStateImageView.image = UIImage(systemName: emptyStateIconName, withConfiguration: config)
-        emptyStateLabel.text = emptyStateTitleText
-        emptyStateSubLabel.text = emptyStateSubTitleText
     }
 
     private func setupBaseConstraints() {
@@ -138,40 +132,42 @@ class BaseRecordListViewController: UIViewController {
         ])
     }
 
-    func setupFetchedResultsController() {
-        let fetchRequest: NSFetchRequest<Record> = Record.fetchRequest()
-        fetchRequest.sortDescriptors = RecordSort.newestFirst
-        fetchRequest.predicate = fetchPredicate()
+    // MARK: - Rendering
 
-        guard let context = CoreDataManager.shared.viewContext else { return }
-        fetchedResultsController = NSFetchedResultsController(
-            fetchRequest: fetchRequest,
-            managedObjectContext: context,
-            sectionNameKeyPath: nil,
-            cacheName: nil
-        )
-        fetchedResultsController?.delegate = self
-
-        do {
-            try fetchedResultsController?.performFetch()
-        } catch {
-            logger.error("Error fetching records: \(error.localizedDescription, privacy: .public)")
-        }
+    /// ViewModel の記録で、一覧と空の表示を描き直す
+    func renderRecords() {
+        displayedRecords = viewModel.records
+        animatedCells.removeAll()
+        collectionView.reloadData()
+        updateEmptyState()
     }
 
-    // MARK: - Helper Methods
-
-    func updateEmptyState() {
-        // 絞り込みの有無で文言が変わる画面があるため、表示を更新するたびに設定し直す
-        emptyStateLabel.text = emptyStateTitleText
-        emptyStateSubLabel.text = emptyStateSubTitleText
-        let isEmpty = fetchedResultsController?.fetchedObjects?.isEmpty ?? true
+    private func updateEmptyState() {
+        let isEmpty = displayedRecords.isEmpty
         emptyStateStackView.isHidden = !isEmpty
         collectionView.isHidden = isEmpty
+        guard isEmpty else { return }
+
+        // 絞り込みの有無で文言が変わるため、空になるたびに設定し直す
+        let content = Self.emptyStateContent(for: viewModel.emptyState)
+        let config = UIImage.SymbolConfiguration(pointSize: 80, weight: .regular)
+        emptyStateImageView.image = UIImage(systemName: content.iconName, withConfiguration: config)
+        emptyStateLabel.text = content.title
+        emptyStateSubLabel.text = content.subtitle
     }
 
-    func resetAnimatedCells() {
-        animatedCells.removeAll()
+    /// 空のときの表示の種類ごとの、アイコン（SF Symbols 名）と文言
+    private static func emptyStateContent(
+        for emptyState: RecordListViewModel.EmptyState
+    ) -> (iconName: String, title: String, subtitle: String) {
+        switch emptyState {
+        case .noRecords:
+            return ("bowl.fill", "まだラーメンの記録がありません", "＋ボタンから最初の記録を追加しましょう！")
+        case .noMatchingRecords:
+            return ("bowl.fill", "条件に合う記録がありません", "検索やフィルターを解除すると、すべての記録が表示されます")
+        case .noFavorites:
+            return ("heart.circle", "お気に入りがありません", "気に入ったラーメンを記録してみましょう！")
+        }
     }
 }
 
@@ -180,7 +176,7 @@ class BaseRecordListViewController: UIViewController {
 extension BaseRecordListViewController: UICollectionViewDataSource {
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return fetchedResultsController?.fetchedObjects?.count ?? 0
+        return displayedRecords.count
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -191,9 +187,7 @@ extension BaseRecordListViewController: UICollectionViewDataSource {
             return UICollectionViewCell()
         }
 
-        if let record = fetchedResultsController?.object(at: indexPath) {
-            cell.configure(with: record)
-        }
+        cell.configure(with: displayedRecords[indexPath.item])
 
         return cell
     }
@@ -211,7 +205,7 @@ extension BaseRecordListViewController: UICollectionViewDelegate {
     }
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard let record = fetchedResultsController?.object(at: indexPath) else { return }
+        let record = displayedRecords[indexPath.item]
         let detailVC = RecordDetailViewController(record: record)
         navigationController?.pushViewController(detailVC, animated: true)
     }
@@ -229,16 +223,5 @@ extension BaseRecordListViewController: UICollectionViewDelegateFlowLayout {
         // 店名と種類タグ・星が切れない高さにする
         let cellHeight = RecordCell.height(forWidth: cellWidth)
         return CGSize(width: cellWidth, height: cellHeight)
-    }
-}
-
-// MARK: - NSFetchedResultsControllerDelegate
-
-extension BaseRecordListViewController: NSFetchedResultsControllerDelegate {
-
-    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-        animatedCells.removeAll()
-        collectionView.reloadData()
-        updateEmptyState()
     }
 }

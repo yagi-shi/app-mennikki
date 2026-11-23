@@ -6,20 +6,17 @@
 //
 
 import UIKit
-import CoreData
 
 /// お気に入り一覧画面
 class FavoriteListViewController: BaseRecordListViewController {
 
-    // MARK: - Base Class Configuration
+    // MARK: - Init
 
-    override var emptyStateIconName: String { "heart.circle" }
-    override var emptyStateTitleText: String { "お気に入りがありません" }
-    override var emptyStateSubTitleText: String { "気に入ったラーメンを記録してみましょう！" }
-
-    override func fetchPredicate() -> NSPredicate? {
-        NSPredicate(format: "isFavorite == true")
+    init() {
+        super.init(scope: .favoritesOnly)
     }
+
+    required init?(coder: NSCoder) { fatalError() }
 
     // MARK: - Setup
 
@@ -33,10 +30,9 @@ class FavoriteListViewController: BaseRecordListViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
 
-        // お気に入りの変更を反映するため、表示時にデータを再取得
-        resetAnimatedCells()
-        try? fetchedResultsController?.performFetch()
-        collectionView.reloadData()
-        updateEmptyState()
+        // お気に入りの変更を反映するため、表示時にデータを再取得する。
+        // observeChanges の描き直しは次の順番になり、表示した直後に古い一覧が一瞬見えることがあるので、ここですぐ描き直す
+        viewModel.reload()
+        renderRecords()
     }
 }
