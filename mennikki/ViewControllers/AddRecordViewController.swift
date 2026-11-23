@@ -10,15 +10,14 @@ import PhotosUI
 import StoreKit
 
 /// 新規記録・編集画面
+///
+/// 入力の値、入力の検証、保存は AddRecordViewModel が受け持つ。この画面は、表示と入力の受け渡し、写真の変換、画面の移動を行う
 class AddRecordViewController: UIViewController {
 
     // MARK: - Properties
 
-    private var recordToEdit: Record?
-    private var isEditMode: Bool { recordToEdit != nil }
+    private let viewModel: AddRecordViewModel
 
-    private var selectedRamenType: RamenType?
-    private var selectedPrefecture: Prefecture?
     /// この画面で選んだ写真。選んでいなければ nil（編集時の保存済みの写真は含めない）
     private var selectedImage: UIImage?
 
@@ -207,7 +206,7 @@ class AddRecordViewController: UIViewController {
     // MARK: - Initialization
 
     init(recordToEdit: Record? = nil) {
-        self.recordToEdit = recordToEdit
+        self.viewModel = AddRecordViewModel(recordToEdit: recordToEdit)
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -227,8 +226,11 @@ class AddRecordViewController: UIViewController {
         setupKeyboardHandling()
         buildRamenTypeChips()
 
-        if isEditMode {
+        if viewModel.isEditMode {
             loadExistingData()
+        } else {
+            // 新規作成では、訪問日の欄の初期値（今日）を、入力の初期値にする
+            viewModel.visitDate = visitDatePicker.date
         }
     }
 
@@ -263,7 +265,7 @@ class AddRecordViewController: UIViewController {
     }
 
     private func setupNavigationBar() {
-        title = isEditMode ? "記録を編集" : "新規記録"
+        title = viewModel.isEditMode ? "記録を編集" : "新規記録"
         navigationItem.largeTitleDisplayMode = .never
 
         navigationItem.leftBarButtonItem = UIBarButtonItem(
@@ -319,7 +321,14 @@ class AddRecordViewController: UIViewController {
         saveActionButton.addTarget(self, action: #selector(saveButtonDown), for: .touchDown)
         saveActionButton.addTarget(self, action: #selector(saveButtonUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])
 
-        starRatingView.onRatingChanged = { _ in }
+        // 入力が変わるたびに、ViewModel に入れる
+        storeNameTextField.addTarget(self, action: #selector(storeNameChanged), for: .editingChanged)
+        costTextField.addTarget(self, action: #selector(costChanged), for: .editingChanged)
+        visitDatePicker.addTarget(self, action: #selector(visitDateChanged), for: .valueChanged)
+        commentTextView.delegate = self
+        starRatingView.onRatingChanged = { [weak self] rating in
+            self?.viewModel.rating = rating
+        }
     }
 
     private func setupKeyboardHandling() {
@@ -490,16 +499,16 @@ class AddRecordViewController: UIViewController {
     @objc private func prefectureButtonTapped() {
         let alert = UIAlertController(title: "都道府県を選択", message: nil, preferredStyle: .actionSheet)
 
-        if selectedPrefecture != nil {
+        if viewModel.prefecture != nil {
             alert.addAction(UIAlertAction(title: "選択を解除", style: .destructive) { [weak self] _ in
-                self?.selectedPrefecture = nil
+                self?.viewModel.prefecture = nil
                 self?.updatePrefectureButton(nil)
             })
         }
 
         for pref in Prefecture.allCases {
             alert.addAction(UIAlertAction(title: pref.rawValue, style: .default) { [weak self] _ in
-                self?.selectedPrefecture = pref
+                self?.viewModel.prefecture = pref
                 self?.updatePrefectureButton(pref)
             })
         }
@@ -544,7 +553,7 @@ class AddRecordViewController: UIViewController {
         let types = RamenType.allCases
         guard sender.tag < types.count else { return }
         let type = types[sender.tag]
-        selectedRamenType = type
+        viewModel.ramenType = type
         selectChip(for: type)
         sender.bounceAnimation(scale: 1.1, duration: 0.12)
     }
@@ -554,47 +563,13 @@ class AddRecordViewController: UIViewController {
     }
 
     @objc private func saveTapped() {
-        guard let storeName = storeNameTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !storeName.isEmpty else {
-            shakeView(storeNameTextField)
-            showAlert(title: "エラー", message: "店舗名を入力してください")
+        if let error = viewModel.validate() {
+            showValidationError(error)
             return
         }
-
-        guard storeName.count <= 100 else {
-            shakeView(storeNameTextField)
-            showAlert(title: "エラー", message: "店舗名は100文字以内で入力してください")
-            return
-        }
-
-        guard let ramenType = selectedRamenType else {
-            showAlert(title: "エラー", message: "ラーメンの種類を選択してください")
-            return
-        }
-
-        guard starRatingView.rating > 0 else {
-            shakeView(starRatingView)
-            showAlert(title: "エラー", message: "評価を選択してください")
-            return
-        }
-
-        let commentText = commentTextView.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if commentText.count > 500 {
-            shakeView(commentTextView)
-            showAlert(title: "エラー", message: "コメントは500文字以内で入力してください")
-            return
-        }
-
-        let cost = Int16(costTextField.text ?? "0") ?? 0
-        let rating = Int16(starRatingView.rating)
-        let comment = commentText.isEmpty ? nil : commentText
 
         let image = selectedImage
-        let existingPhoto: Data? = (isEditMode ? recordToEdit?.photo : nil)
-        let visitDate = visitDatePicker.date
-        let isFavorite = isEditMode ? (recordToEdit?.isFavorite ?? false) : false
-        let record = recordToEdit
-        let editMode = isEditMode
+        let existingPhoto = viewModel.existingPhotoData
 
         view.isUserInteractionEnabled = false
 
@@ -623,39 +598,12 @@ class AddRecordViewController: UIViewController {
                     return
                 }
 
-                var saveSuccess = false
-
-                if editMode, let record = record {
-                    if image != nil {
-                        // 写真を差し替えるので、一覧に古いサムネイルが残らないようにする
-                        RecordCell.removeCachedImage(for: record)
-                    }
-                    saveSuccess = CoreDataManager.shared.updateRecord(
-                        record,
-                        storeName: storeName,
-                        ramenType: ramenType,
-                        visitDate: visitDate,
-                        cost: cost,
-                        rating: rating,
-                        comment: comment,
-                        photo: photoData,
-                        isFavorite: isFavorite,
-                        prefecture: selectedPrefecture
-                    )
-                } else {
-                    saveSuccess = CoreDataManager.shared.createRecord(
-                        storeName: storeName,
-                        ramenType: ramenType,
-                        visitDate: visitDate,
-                        cost: cost,
-                        rating: rating,
-                        comment: comment,
-                        photo: photoData,
-                        prefecture: selectedPrefecture
-                    ) != nil
+                if image != nil, let record = self.viewModel.recordToEdit {
+                    // 写真を差し替えるので、一覧に古いサムネイルが残らないようにする
+                    RecordCell.removeCachedImage(for: record)
                 }
 
-                guard saveSuccess else {
+                guard case .saved(let shouldRequestReview) = self.viewModel.save(photoData: photoData) else {
                     self.showAlert(title: "保存エラー", message: "データの保存に失敗しました。空き容量を確認してください。")
                     return
                 }
@@ -663,8 +611,6 @@ class AddRecordViewController: UIViewController {
                 self.showSuccessAnimation()
 
                 // 新規登録で記録の総数が節目になったら、登録画面を閉じた後にストア評価を依頼する（表示の頻度は iOS が制御）
-                let shouldRequestReview = !editMode
-                    && ReviewRequestPolicy.shouldRequestReview(recordCount: CoreDataManager.shared.fetchAllRecords().count)
                 let scene = self.view.window?.windowScene
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -691,8 +637,39 @@ class AddRecordViewController: UIViewController {
         view.endEditing(true)
     }
 
+    // MARK: - Input Actions
+
+    @objc private func storeNameChanged() {
+        viewModel.storeName = storeNameTextField.text ?? ""
+    }
+
+    @objc private func costChanged() {
+        viewModel.costText = costTextField.text ?? ""
+    }
+
+    @objc private func visitDateChanged() {
+        viewModel.visitDate = visitDatePicker.date
+    }
 
     // MARK: - Helper Methods
+
+    /// 入力のエラーを、該当する欄を揺らしてから、アラートで知らせる
+    private func showValidationError(_ error: AddRecordViewModel.ValidationError) {
+        if let field = fieldToShake(for: error) {
+            shakeView(field)
+        }
+        showAlert(title: "エラー", message: error.message)
+    }
+
+    /// エラーのときに揺らす欄。種類のエラーでは揺らさない（移行前と同じ）
+    private func fieldToShake(for error: AddRecordViewModel.ValidationError) -> UIView? {
+        switch error {
+        case .storeNameEmpty, .storeNameTooLong: return storeNameTextField
+        case .ramenTypeNotSelected: return nil
+        case .ratingNotSelected: return starRatingView
+        case .commentTooLong: return commentTextView
+        }
+    }
 
     private func showAlert(title: String, message: String) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
@@ -756,33 +733,24 @@ class AddRecordViewController: UIViewController {
         }
     }
 
+    /// 編集のときに、ViewModel が記録から作った入力の初期値を、画面の欄に出す
     private func loadExistingData() {
-        guard let record = recordToEdit else { return }
+        storeNameTextField.text = viewModel.storeName
 
-        storeNameTextField.text = record.storeName
-
-        if let ramenType = RamenType(rawValue: record.ramenType ?? "") {
-            selectedRamenType = ramenType
+        if let ramenType = viewModel.ramenType {
             selectChip(for: ramenType)
         }
 
-        if let visitDate = record.visitDate {
-            visitDatePicker.date = visitDate
+        visitDatePicker.date = viewModel.visitDate
+        costTextField.text = viewModel.costText
+        starRatingView.rating = viewModel.rating
+        commentTextView.text = viewModel.comment
+
+        if let prefecture = viewModel.prefecture {
+            updatePrefectureButton(prefecture)
         }
 
-        if record.cost > 0 {
-            costTextField.text = "\(record.cost)"
-        }
-
-        starRatingView.rating = Int(record.rating)
-        commentTextView.text = record.comment
-
-        if let prefRaw = record.prefecture, let pref = Prefecture(rawValue: prefRaw) {
-            selectedPrefecture = pref
-            updatePrefectureButton(pref)
-        }
-
-        if let photoData = record.photo {
+        if let photoData = viewModel.existingPhotoData {
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 guard let image = UIImage(data: photoData) else { return }
                 DispatchQueue.main.async {
@@ -813,14 +781,22 @@ extension AddRecordViewController: UITextFieldDelegate {
         let current = textField.text ?? ""
         guard let range = Range(range, in: current) else { return false }
         let newText = current.replacingCharacters(in: range, with: string)
-        if newText.isEmpty { return true }
-        guard let value = Int(newText) else { return false }
-        return value <= 9999
+        return AddRecordViewModel.isAcceptableCostText(newText)
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         textField.resignFirstResponder()
         return true
+    }
+}
+
+// MARK: - UITextViewDelegate
+
+extension AddRecordViewController: UITextViewDelegate {
+
+    func textViewDidChange(_ textView: UITextView) {
+        guard textView == commentTextView else { return }
+        viewModel.comment = textView.text ?? ""
     }
 }
 
