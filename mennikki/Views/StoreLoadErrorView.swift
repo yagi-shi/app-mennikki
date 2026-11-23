@@ -46,19 +46,27 @@ struct StoreLoadErrorView: View {
                 .accessibilityAddTraits(.isHeader)
 
             VStack(alignment: .leading, spacing: Layout.sectionSpacing) {
-                Text("記録のデータは、端末に残っています。アプリを削除すると、このデータも消えてしまうので、削除しないでください。")
+                wrappingText("記録のデータは、端末に残っています。アプリを削除すると、このデータも消えてしまうので、削除しないでください。")
 
                 VStack(alignment: .leading, spacing: Layout.itemSpacing) {
                     // 裏から戻しただけでは読み込み直さないので、アプリを終了してから開いてもらう
-                    Text("次のことを試したあと、アプリを終了してから、もう一度開いてください。")
+                    wrappingText("次のことを試したあと、アプリを終了してから、もう一度開いてください。")
                     ForEach(Self.thingsToTry, id: \.self) { thingToTry in
                         bulletItem(thingToTry)
                     }
                 }
             }
             .font(.appBody)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .foregroundStyle(Color.appText)
+    }
+
+    /// 折り返す文。入れ子の VStack の中では、日本語の文に 1 行分の高さしか割り当てられず、
+    /// 2 行目以降が「…」で省略されることがあったので、必要な高さを必ず取るようにする
+    private func wrappingText(_ text: String) -> some View {
+        Text(text)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     /// 行頭に「・」を付けた項目。2 行になったときも、2 行目の頭を 1 行目の文字にそろえる
@@ -66,7 +74,7 @@ struct StoreLoadErrorView: View {
         HStack(alignment: .firstTextBaseline, spacing: Layout.bulletSpacing) {
             Text("・")
                 .accessibilityHidden(true)
-            Text(text)
+            wrappingText(text)
         }
     }
 
