@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import SwiftUI
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -16,12 +17,22 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         let window = UIWindow(windowScene: windowScene)
-        window.rootViewController = createTabBarController()
+        window.rootViewController = createRootViewController()
         self.window = window
         window.makeKeyAndVisible()
     }
 
     // MARK: - Setup
+
+    /// 最初に出す画面を作る。保存したデータを開けなかったときは、タブの画面の代わりに、そのことを知らせる画面を出す
+    private func createRootViewController() -> UIViewController {
+        switch RootScreen(isStoreAvailable: CoreDataManager.shared.isStoreAvailable) {
+        case .recordTabs:
+            return createTabBarController()
+        case .storeLoadError:
+            return UIHostingController(rootView: StoreLoadErrorView())
+        }
+    }
 
     /// TabBarControllerを作成
     private func createTabBarController() -> UITabBarController {
