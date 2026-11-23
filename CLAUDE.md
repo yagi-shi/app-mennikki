@@ -67,7 +67,7 @@
 - **カラー、フォント、スタイルは定義済みのデザインシステムを使用**
 - 詳細は `docs/10_design/04_デザインガイドライン.md` を参照
 - SwiftUI の画面では `Color+App.swift`、`Font+App.swift`（Color、Font の extension）の定義を使う。UIKit の画面では `UIColor+App.swift`、`UIFont+App.swift`（UIColor、UIFont の extension）の定義を使う
-- 色は、SwiftUI と UIKit の定義で、同じ名前・同じ値にする（`Color+AppTests` で確かめる）。UIKit の定義は、#27 で UIKit の画面がなくなったときに消す
+- UIKit の定義にもある色は、SwiftUI の定義でも同じ名前・同じ値にする（`Color+AppTests` で確かめる）。UIKit の定義は、#27 で UIKit の画面がなくなったときに消す
 - フォントは定義を使い、その場でサイズを書かない（`Font.system(size:)`、`UIFont.rounded(ofSize:weight:)`、`UIFont.systemFont(ofSize:)` を画面のコードで直接使わない）。新しい用途のフォントが必要なときは、先に定義を追加する
 - フォントの定義は、iOS の標準の文字サイズの段階（テキストスタイル）から作り（SwiftUI は `Font.rounded(_:weight:)`、UIKit は `UIFont.rounded(_:weight:)`）、独自のサイズは作らない（例外はタブバーのみ）。SwiftUI のフォントの定義は、画面で使うものから足す
 - 再利用可能なコンポーネントを作成（ボタン、カード、タグなど）
