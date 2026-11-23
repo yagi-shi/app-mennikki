@@ -10,7 +10,7 @@ import SwiftUI
 /// そのため、データが端末に残っていることと、アプリを削除しないでほしいことを伝える
 struct StoreLoadErrorView: View {
 
-    /// 開き直す前に、試してほしいこと
+    /// アプリをもう一度開く前に、試してほしいこと
     private static let thingsToTry = [
         "空き容量を増やす",
         "端末を再起動する",
@@ -49,7 +49,8 @@ struct StoreLoadErrorView: View {
                 Text("記録のデータは、端末に残っています。アプリを削除すると、このデータも消えてしまうので、削除しないでください。")
 
                 VStack(alignment: .leading, spacing: Layout.itemSpacing) {
-                    Text("次のことを試してから、アプリを開き直してください。")
+                    // 裏から戻しただけでは読み込み直さないので、アプリを終了してから開いてもらう
+                    Text("次のことを試したあと、アプリを終了してから、もう一度開いてください。")
                     ForEach(Self.thingsToTry, id: \.self) { thingToTry in
                         bulletItem(thingToTry)
                     }
