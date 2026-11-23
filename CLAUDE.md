@@ -17,7 +17,7 @@
 - **データ永続化**: Core Data
 - **レイアウト**: Auto Layout（NSLayoutAnchor）
 - **画像選択**: PHPickerViewController
-- **アーキテクチャ**: MVVM（ViewModel は Observation の `@Observable`。#26 で MVC から画面ごとに移行中）
+- **アーキテクチャ**: MVVM（ViewModel は Observation の `@Observable`）
 - **デザインシステム**: カラフル、丸みのあるポップなUI
 
 ---
@@ -98,7 +98,7 @@
 mennikki/
 ├── Models/              # Core Dataモデル、Enum定義（RamenType, Prefecture）
 ├── Views/               # カスタムビュー、セル（RecordCell, StarRatingView）
-├── ViewModels/          # 画面ごとのViewModel（RecordListViewModel, RecordDetailViewModel）、変更を受け取る observeChanges(_:)
+├── ViewModels/          # 画面ごとのViewModel（RecordListViewModel, RecordDetailViewModel, AddRecordViewModel）、変更を受け取る observeChanges(_:)
 ├── ViewControllers/     # 画面ごとのViewController
 │   ├── BaseRecordListViewController.swift   # 一覧画面の共通基底クラス
 │   ├── RecordListViewController.swift       # 記録一覧（検索・フィルター付き）
