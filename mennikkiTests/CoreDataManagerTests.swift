@@ -180,11 +180,13 @@ struct CoreDataManagerTests {
         #expect(manager.isStoreAvailable == false)
     }
 
-    @Test("開けなかったときは、記録を書き込まず、保存先のファイルを消したり書き換えたりしない")
+    @Test("開けなかったときは、記録を書き込まず、保存先のファイルを消したり書き換えたり、ほかのファイルを作ったりしない")
     func brokenStoreFileIsLeftAsIs() throws {
         let storeURL = try makeBrokenStoreFile()
         defer { removeTemporaryDirectory(of: storeURL) }
+        let storeDirectory = storeURL.deletingLastPathComponent()
         let originalData = try Data(contentsOf: storeURL)
+        let originalFileNames = try fileNames(in: storeDirectory)
         let manager = CoreDataManager(inMemory: false, storeURL: storeURL)
 
         let createdRecord = manager.createRecord(storeName: "テスト軒", ramenType: .shoyu, visitDate: Date())
@@ -192,6 +194,8 @@ struct CoreDataManagerTests {
         #expect(createdRecord == nil)
         #expect(manager.fetchAllRecords().isEmpty)
         #expect(try Data(contentsOf: storeURL) == originalData)
+        // SQLite の作業用のファイル（-wal、-shm）なども、増えていない
+        #expect(try fileNames(in: storeDirectory) == originalFileNames)
     }
 
     // MARK: - Helper Methods
@@ -210,6 +214,11 @@ struct CoreDataManagerTests {
         let brokenContent = String(repeating: "これはデータベースではありません。", count: 100)
         try Data(brokenContent.utf8).write(to: storeURL)
         return storeURL
+    }
+
+    /// フォルダの中にあるファイルの名前
+    private func fileNames(in directory: URL) throws -> Set<String> {
+        Set(try FileManager.default.contentsOfDirectory(atPath: directory.path))
     }
 
     /// `makeTemporaryStoreURL()` で作った一時フォルダを、中身ごと消す
