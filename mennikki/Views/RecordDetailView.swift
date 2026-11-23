@@ -98,7 +98,10 @@ struct RecordDetailView: View {
         }
         // 写真が変わったときは、読み終わるまで種類の色の背景に戻す
         headerPhoto = nil
-        headerPhoto = await Self.decodePhoto(photoData)
+        let decodedPhoto = await Self.decodePhoto(photoData)
+        // 読んでいる間に写真が変わったときは、古い写真を出さない
+        guard !Task.isCancelled else { return }
+        headerPhoto = decodedPhoto
     }
 
     /// 写真のデータを、表示できる画像にする。大きい写真で画面が止まらないように、メインスレッドの外で行う
