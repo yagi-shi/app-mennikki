@@ -7,7 +7,8 @@ import SwiftUI
 
 /// 保存したデータを開けなかったときに、タブの画面の代わりに出す画面。
 /// 記録が 0 件の画面を出すと、利用者が「消えた」と思ってアプリを削除し、本当にデータが消えるおそれがある。
-/// そのため、データが端末に残っていることと、アプリを削除しないでほしいことを伝える
+/// そのため、データが端末に残っていることと、アプリを削除しないでほしいことを伝える。
+/// 起動画面からいきなり見た目が変わると驚かせるので、起動画面と同じ背景の色と絵を使う
 struct StoreLoadErrorView: View {
 
     /// アプリをもう一度開く前に、試してほしいこと
@@ -28,16 +29,16 @@ struct StoreLoadErrorView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
         }
-        .background(Color.appBackground)
+        .background(Color.appLaunchBackground)
     }
 
     private var content: some View {
         VStack(spacing: Layout.sectionSpacing) {
-            Image(systemName: "exclamationmark.triangle.fill")
+            // 起動画面と同じ絵（周りは透明）
+            Image(.launchScreen)
                 .resizable()
                 .scaledToFit()
-                .frame(width: Layout.iconSize, height: Layout.iconSize)
-                .foregroundStyle(Color.appPrimary)
+                .frame(width: Layout.logoSize, height: Layout.logoSize)
                 .accessibilityHidden(true)
 
             Text("記録を読み込めませんでした")
@@ -79,7 +80,8 @@ struct StoreLoadErrorView: View {
     }
 
     private enum Layout {
-        static let iconSize: CGFloat = 64
+        /// 起動画面の絵の大きさ。起動画面（375pt）より小さくし、文を読む場所を空ける
+        static let logoSize: CGFloat = 180
         static let sectionSpacing: CGFloat = 24
         static let itemSpacing: CGFloat = 8
         static let bulletSpacing: CGFloat = 4
