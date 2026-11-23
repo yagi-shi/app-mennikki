@@ -21,6 +21,8 @@ struct RecordDetailView: View {
 
     /// ヘッダーに出す写真。写真のデータを、メインスレッドの外で画像にしてから入れる
     @State private var headerPhoto: UIImage?
+    /// ヘッダーに出している写真のデータ。同じ写真を読み直さないために覚えておく
+    @State private var headerPhotoData: Data?
     /// 画面の幅。写真を出すときのヘッダーの高さを決めるのに使う
     @State private var contentWidth: CGFloat = 0
     @State private var isConfirmingDelete = false
@@ -45,7 +47,7 @@ struct RecordDetailView: View {
         // タイトルは出さない。大きいタイトルの場所も空けない
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
-        // 写真が変わったときだけ読み直す（編集で写真を変えたとき）
+        // 写真が変わったとき（編集で写真を変えたとき）と、画面がもう一度出たとき（編集画面を閉じたとき）に動く
         .task(id: viewModel.photoData) {
             await loadHeaderPhoto()
         }
@@ -80,6 +82,8 @@ struct RecordDetailView: View {
                         .scaledToFill()
                 }
                 .clipped()
+                // 今の UIKit の画面と同じく、読み上げの対象にしない
+                .accessibilityHidden(true)
         } else {
             typeColor
                 .frame(height: RecordDetailHeader.minHeight)
@@ -88,20 +92,26 @@ struct RecordDetailView: View {
                         .font(.system(size: Layout.placeholderIconSize, weight: .thin))
                         .foregroundStyle(Color.white.opacity(Layout.placeholderIconOpacity))
                 }
+                .accessibilityHidden(true)
         }
     }
 
     private func loadHeaderPhoto() async {
         guard let photoData = viewModel.photoData else {
             headerPhoto = nil
+            headerPhotoData = nil
             return
         }
+        // 同じ写真を読み直すと、読み終わるまで一瞬、種類の色の背景に戻るので、写真が変わったときだけ読み直す
+        guard photoData != headerPhotoData else { return }
+
         // 写真が変わったときは、読み終わるまで種類の色の背景に戻す
         headerPhoto = nil
         let decodedPhoto = await Self.decodePhoto(photoData)
         // 読んでいる間に写真が変わったときは、古い写真を出さない
         guard !Task.isCancelled else { return }
         headerPhoto = decodedPhoto
+        headerPhotoData = photoData
     }
 
     /// 写真のデータを、表示できる画像にする。大きい写真で画面が止まらないように、メインスレッドの外で行う
