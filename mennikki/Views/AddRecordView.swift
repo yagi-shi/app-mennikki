@@ -70,6 +70,10 @@ struct AddRecordView: View {
                     Button(action: onCancel) {
                         Image(systemName: "xmark")
                     }
+                    .barButtonColorLikeUIKit()
+                    // 保存している間に閉じると、閉じたあとに保存されてしまうので、押せなくする
+                    .disabled(isSaving)
+                    .accessibilityLabel("閉じる")
                 }
             }
             .alert(alertContent.title, isPresented: $isShowingAlert) {
@@ -348,6 +352,8 @@ struct AddRecordView: View {
                 .background(Color.appSuccess, in: RoundedRectangle(cornerRadius: Layout.saveButtonCornerRadius))
         }
         .buttonStyle(PushDownButtonStyle(shadowColor: .appSuccessShadow))
+        // 指で押す操作は allowsHitTesting で止まるが、VoiceOver で押す操作は止まらないので、ボタンも押せなくする
+        .disabled(isSaving)
         .accessibilityLabel("保存")
         .padding(.horizontal, Layout.formPadding)
         .padding(.bottom, Layout.saveButtonBottomPadding)
@@ -367,6 +373,8 @@ struct AddRecordView: View {
     }
 
     private func save() {
+        // 同じ記録を 2 回保存しない
+        guard !isSaving else { return }
         focusedField = nil
         if let error = viewModel.validate() {
             showValidationError(error)
@@ -580,6 +588,18 @@ private struct EqualWidthHStack: Layout {
 // MARK: - 入力の欄の見た目と動き
 
 private extension View {
+
+    /// ナビゲーションバーのボタンの色を、今の UIKit の画面と同じにする。
+    /// UIKit の画面では、バーのボタンの色を appPrimary にしている（applyAppStyle）。
+    /// iOS 26 からは、UIKit のバーのボタンがこの色を使わずに黒で出るので、iOS 26 より前だけ色を付ける
+    @ViewBuilder
+    func barButtonColorLikeUIKit() -> some View {
+        if #available(iOS 26, *) {
+            self
+        } else {
+            tint(Color.appPrimary)
+        }
+    }
 
     /// 入力の欄の見た目（白い背景、角丸、枠）
     func inputFieldBackground(borderColor: Color) -> some View {
