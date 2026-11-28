@@ -16,7 +16,7 @@
 - **UI構築**: SwiftUI（#27 で UIKit から画面ごとに移行中。移行していない画面は UIKit のプログラマティックな実装。Storyboard/XIB不使用）
 - **データ永続化**: Core Data
 - **レイアウト**: SwiftUI のスタック（VStack、HStack など）。UIKit の画面は Auto Layout（NSLayoutAnchor）
-- **画像選択**: PHPickerViewController
+- **画像選択**: PhotosPicker（SwiftUI）
 - **アーキテクチャ**: MVVM（ViewModel は Observation の `@Observable`）
 - **デザインシステム**: カラフル、丸みのあるポップなUI
 
@@ -104,17 +104,17 @@
 
 ```
 mennikki/
-├── Models/              # Core Dataモデル、Enum定義（RamenType, Prefecture, RootScreen）、詳細画面のヘッダーの高さ（RecordDetailHeader）
-├── Views/               # カスタムビュー、セル（RecordCell, StarRatingView）、SwiftUI の画面（StoreLoadErrorView, RecordDetailView）
+├── Models/              # Core Dataモデル、Enum定義（RamenType, Prefecture, RootScreen）、詳細画面のヘッダーの高さ（RecordDetailHeader）、保存する写真の縮小と変換（RecordPhotoEncoder）
+├── Views/               # セル（RecordCell）、SwiftUI の画面（StoreLoadErrorView, RecordDetailView, AddRecordView）と部品（StarRatingInputView, PushDownButtonStyle）
 ├── ViewModels/          # 画面ごとのViewModel（RecordListViewModel, RecordDetailViewModel, AddRecordViewModel）、変更を受け取る observeChanges(_:)
 ├── ViewControllers/     # 画面ごとのViewController
 │   ├── BaseRecordListViewController.swift   # 一覧画面の共通基底クラス
 │   ├── RecordListViewController.swift       # 記録一覧（検索・フィルター付き）
 │   ├── FavoriteListViewController.swift     # お気に入り一覧
 │   ├── RecordDetailViewController.swift     # 記録詳細（SwiftUI の RecordDetailView を入れる、#27 の移行中のつなぎ）
-│   └── AddRecordViewController.swift        # 新規作成・編集（共用）
+│   └── AddRecordViewController.swift        # 新規作成・編集（SwiftUI の AddRecordView を入れる、#27 の移行中のつなぎ）
 ├── Managers/            # CoreDataManager（シングルトン）
-├── Extensions/          # Color, Font（SwiftUI）、UIColor, UIFont, UIView, UINavigationBar, UITabBar 拡張
+├── Extensions/          # Color, Font（SwiftUI）、UIColor, UIFont, UIImage, UIView, UINavigationBar, UITabBar 拡張
 └── Resources/           # Assets、Core Dataモデルファイル
 ```
 

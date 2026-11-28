@@ -27,6 +27,11 @@ extension Font {
         rounded(.title2, weight: .heavy)
     }
 
+    /// ボタンテキスト
+    static var appButton: Font {
+        rounded(.callout, weight: .bold)
+    }
+
     /// 本文、説明文
     static var appBody: Font {
         rounded(.subheadline, weight: .medium)
@@ -42,8 +47,18 @@ extension Font {
         rounded(.footnote, weight: .medium)
     }
 
+    /// 記録画面の種類の選択ボタン
+    static var appChip: Font {
+        rounded(.footnote, weight: .bold)
+    }
+
     /// 小さいタグ・バッジ
     static var appTag: Font {
         rounded(.caption, weight: .bold)
+    }
+
+    /// 記録画面の項目名（「店舗名」など）
+    static var appFormLabel: Font {
+        rounded(.caption, weight: .heavy)
     }
 }

@@ -281,11 +281,7 @@ class RecordListViewController: BaseRecordListViewController {
     }
 
     @objc private func addButtonTapped() {
-        let addRecordVC = AddRecordViewController()
-        let navController = UINavigationController(rootViewController: addRecordVC)
-        navController.navigationBar.applyAppStyle()
-        navController.modalPresentationStyle = .fullScreen
-        present(navController, animated: true)
+        present(AddRecordViewController(), animated: true)
     }
 
     @objc private func filterButtonTapped() {

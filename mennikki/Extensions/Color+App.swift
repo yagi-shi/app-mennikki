@@ -21,8 +21,16 @@ extension Color {
     static let appText       = Color(red: 60/255,  green: 60/255,  blue: 60/255)
     static let appSecondaryText = Color(red: 175/255, green: 175/255, blue: 175/255)
     static let appBorder     = Color(red: 229/255, green: 229/255, blue: 229/255)
-    static let appFieldBorder = Color(red: 149/255, green: 165/255, blue: 166/255, opacity: 0.2)
+    static let appFieldBorder = appFieldBorderOpaque.opacity(0.2)
     static let appCardBorder  = Color(red: 235/255, green: 235/255, blue: 235/255)
+
+    /// 入力欄の枠の色（appFieldBorder）を、透けさせない色。
+    /// 登録・編集画面の写真の欄で、カメラのアイコンに使い、透けさせて枠と背景にも使う。
+    /// UIKit の画面では、appFieldBorder の不透明度を変えて作っていたので、UIKit の定義にはない
+    static let appFieldBorderOpaque = Color(red: 149/255, green: 165/255, blue: 166/255)
+    /// 登録・編集画面の保存ボタンの下に出す、ぼかさない影の色（appSuccess を濃くした緑）。
+    /// UIKit の画面では、画面の中に直接書いていたので、UIKit の定義にはない
+    static let appSuccessShadow = Color(red: 50/255, green: 140/255, blue: 0/255)
 
     // MARK: - Ramen Type Colors
 
